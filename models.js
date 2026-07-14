@@ -11,8 +11,6 @@ const userSchema = new mongoose.Schema({
   created_at: { type: Date, default: Date.now }
 });
 
-userSchema.index({ team_id: 1 });
-
 // Hash password before saving
 userSchema.pre('save', async function() {
   if (!this.isModified('password')) return;
@@ -41,11 +39,6 @@ const leadSchema = new mongoose.Schema({
   updated_at: { type: Date, default: Date.now }
 });
 
-leadSchema.index({ phone: 1 });
-leadSchema.index({ email: 1 });
-leadSchema.index({ assigned_agent_id: 1 });
-leadSchema.index({ created_at: -1 });
-
 const teamSchema = new mongoose.Schema({
   name: { type: String, required: true },
   leader_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -65,10 +58,6 @@ const callLogSchema = new mongoose.Schema({
   follow_up_at: { type: Date },
   created_at: { type: Date, default: Date.now }
 });
-
-callLogSchema.index({ lead_id: 1 });
-callLogSchema.index({ agent_id: 1 });
-callLogSchema.index({ created_at: -1 });
 
 export const User = mongoose.model('User', userSchema);
 export const Lead = mongoose.model('Lead', leadSchema);

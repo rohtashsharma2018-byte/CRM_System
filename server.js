@@ -187,39 +187,15 @@ app.post('/api/leads/import', authenticate, async (req, res) => {
     const { leads, confirm } = req.body;
     if (!Array.isArray(leads)) return res.status(400).json({ message: 'Invalid data format' });
 
-    // Gather all candidate phones and emails to query in a single batch
-    const phones = [];
-    const emails = [];
-    for (const leadData of leads) {
-      const phone = leadData.phone || leadData.Phone;
-      const email = leadData.email || leadData.Email;
-      if (phone) phones.push(phone.toString().trim());
-      if (email) emails.push(email.toString().trim());
-    }
-
-    // Single query to fetch all potential duplicates
-    const queryConditions = [];
-    if (phones.length > 0) queryConditions.push({ phone: { $in: phones } });
-    if (emails.length > 0) queryConditions.push({ email: { $in: emails } });
-
-    let existingLeads = [];
-    if (queryConditions.length > 0) {
-      existingLeads = await Lead.find({ $or: queryConditions });
-    }
-
-    // Store existing phones and emails in sets for O(1) matching
-    const existingPhones = new Set(existingLeads.map(l => l.phone?.toString().trim()));
-    const existingEmails = new Set(existingLeads.map(l => l.email?.toString().trim()).filter(Boolean));
-
+    // First pass: identify duplicates
     const toImport = [];
     const duplicates = [];
-
     for (const leadData of leads) {
-      const phone = (leadData.phone || leadData.Phone)?.toString().trim();
-      const email = (leadData.email || leadData.Email)?.toString().trim();
+      const query = { $or: [{ phone: leadData.phone || leadData.Phone }] };
+      if (leadData.email || leadData.Email) query.$or.push({ email: leadData.email || leadData.Email });
       
-      const isDuplicate = (phone && existingPhones.has(phone)) || (email && existingEmails.has(email));
-      if (isDuplicate) {
+      const duplicate = await Lead.findOne(query);
+      if (duplicate) {
         duplicates.push(leadData);
       } else {
         toImport.push(leadData);
@@ -263,20 +239,6 @@ app.put('/api/leads/:id', authenticate, async (req, res) => {
     const existingLead = await Lead.findById(req.params.id);
     if (!existingLead) return res.status(404).json({ message: 'Lead not found' });
     
-    // Privacy boundary checks
-    if (req.user.role === 'agent') {
-      if (!existingLead.assigned_agent_id || existingLead.assigned_agent_id.toString() !== req.user.id) {
-        return res.status(403).json({ message: 'Forbidden: You can only edit your own assigned leads' });
-      }
-    } else if (req.user.role === 'tl' && req.user.team_id) {
-      if (existingLead.assigned_agent_id) {
-        const assignedAgent = await User.findById(existingLead.assigned_agent_id);
-        if (!assignedAgent || assignedAgent.team_id !== req.user.team_id) {
-          return res.status(403).json({ message: 'Forbidden: You can only edit leads assigned to your team members' });
-        }
-      }
-    }
-
     const { phone, email } = req.body;
     
     // Check for duplicates excluding current lead
@@ -309,21 +271,8 @@ app.put('/api/leads/:id', authenticate, async (req, res) => {
 app.delete('/api/leads/:id', authenticate, async (req, res) => {
   try {
     if (req.user.role === 'agent') return res.status(403).json({ message: 'Forbidden' });
-    
-    const existingLead = await Lead.findById(req.params.id);
-    if (!existingLead) return res.status(404).json({ message: 'Lead not found' });
-    
-    // TL privacy check
-    if (req.user.role === 'tl' && req.user.team_id && existingLead.assigned_agent_id) {
-      const assignedAgent = await User.findById(existingLead.assigned_agent_id);
-      if (!assignedAgent || assignedAgent.team_id !== req.user.team_id) {
-        return res.status(403).json({ message: 'Forbidden: You can only delete leads assigned to your team members' });
-      }
-    }
-
     await Lead.findByIdAndDelete(req.params.id);
-    await CallLog.deleteMany({ lead_id: req.params.id });
-    res.json({ message: 'Lead and related data deleted successfully' });
+    res.json({ message: 'Lead deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -332,23 +281,6 @@ app.delete('/api/leads/:id', authenticate, async (req, res) => {
 // --- CALL LOGS ---
 app.post('/api/calls', authenticate, async (req, res) => {
   try {
-    const lead = await Lead.findById(req.body.lead_id);
-    if (!lead) return res.status(404).json({ message: 'Lead not found' });
-
-    // Privacy checks for creating a call log
-    if (req.user.role === 'agent') {
-      if (!lead.assigned_agent_id || lead.assigned_agent_id.toString() !== req.user.id) {
-        return res.status(403).json({ message: 'Forbidden: You can only log calls for your own assigned leads' });
-      }
-    } else if (req.user.role === 'tl' && req.user.team_id) {
-      if (lead.assigned_agent_id) {
-        const assignedAgent = await User.findById(lead.assigned_agent_id);
-        if (!assignedAgent || assignedAgent.team_id !== req.user.team_id) {
-          return res.status(403).json({ message: 'Forbidden: You can only log calls for team members' });
-        }
-      }
-    }
-
     const call = new CallLog({ ...req.body, agent_id: req.user.id });
     await call.save();
     
@@ -373,23 +305,6 @@ app.post('/api/calls', authenticate, async (req, res) => {
 
 app.get('/api/calls/:leadId', authenticate, async (req, res) => {
   try {
-    const lead = await Lead.findById(req.params.leadId);
-    if (!lead) return res.status(404).json({ message: 'Lead not found' });
-
-    // Privacy checks for viewing call logs of a lead
-    if (req.user.role === 'agent') {
-      if (!lead.assigned_agent_id || lead.assigned_agent_id.toString() !== req.user.id) {
-        return res.status(403).json({ message: 'Forbidden: You can only view calls of your own assigned leads' });
-      }
-    } else if (req.user.role === 'tl' && req.user.team_id) {
-      if (lead.assigned_agent_id) {
-        const assignedAgent = await User.findById(lead.assigned_agent_id);
-        if (!assignedAgent || assignedAgent.team_id !== req.user.team_id) {
-          return res.status(403).json({ message: 'Forbidden: You can only view calls of your team members' });
-        }
-      }
-    }
-
     const calls = await CallLog.find({ lead_id: req.params.leadId }).sort({ created_at: -1 });
     res.json(calls);
   } catch (err) {
@@ -427,10 +342,6 @@ app.get('/api/teams', authenticate, async (req, res) => {
 
 app.post('/api/teams', authenticate, async (req, res) => {
   try {
-    // Only admins or TLs can manage teams
-    if (req.user.role !== 'admin' && req.user.role !== 'tl') {
-      return res.status(403).json({ message: 'Forbidden: Admin or Team Leader access required' });
-    }
     const team = new Team(req.body);
     await team.save();
     res.status(201).json(team);
@@ -441,10 +352,6 @@ app.post('/api/teams', authenticate, async (req, res) => {
 
 app.put('/api/teams/:id', authenticate, async (req, res) => {
   try {
-    // Only admins or TLs can manage teams
-    if (req.user.role !== 'admin' && req.user.role !== 'tl') {
-      return res.status(403).json({ message: 'Forbidden: Admin or Team Leader access required' });
-    }
     const team = await Team.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(team);
   } catch (err) {
@@ -454,10 +361,6 @@ app.put('/api/teams/:id', authenticate, async (req, res) => {
 
 app.delete('/api/teams/:id', authenticate, async (req, res) => {
   try {
-    // Only admins or TLs can manage teams
-    if (req.user.role !== 'admin' && req.user.role !== 'tl') {
-      return res.status(403).json({ message: 'Forbidden: Admin or Team Leader access required' });
-    }
     await Team.findByIdAndDelete(req.params.id);
     res.json({ message: 'Team deleted' });
   } catch (err) {
@@ -477,10 +380,6 @@ app.get('/api/users', authenticate, async (req, res) => {
 
 app.put('/api/users/:id', authenticate, async (req, res) => {
   try {
-    // Only admin or the user themselves can edit user data
-    if (req.user.role !== 'admin' && req.user.id !== req.params.id) {
-      return res.status(403).json({ message: 'Forbidden: You can only edit your own profile or must be an admin' });
-    }
     const updateData = { ...req.body };
     if (updateData.password && updateData.password.trim() !== '') {
       updateData.password = await bcrypt.hash(updateData.password, 10);
@@ -496,9 +395,6 @@ app.put('/api/users/:id', authenticate, async (req, res) => {
 
 app.delete('/api/users/:id', authenticate, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden: Admin access required to delete users' });
-    }
     await User.findByIdAndDelete(req.params.id);
     res.json({ message: 'User deleted' });
   } catch (err) {
@@ -518,10 +414,6 @@ app.get('/api/settings/:key', authenticate, async (req, res) => {
 
 app.post('/api/settings/:key', authenticate, async (req, res) => {
   try {
-    // Only Admin and TL can write/update settings. Agents are forbidden.
-    if (req.user.role === 'agent') {
-      return res.status(403).json({ message: 'Forbidden: Settings cannot be modified by agents' });
-    }
     const setting = await Setting.findOneAndUpdate(
       { key: req.params.key },
       { value: req.body.value },
@@ -613,11 +505,6 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'Index.html'));
 });
 
-// Export app for serverless platforms like Vercel and Netlify
-export default app;
-
-if (!process.env.VERCEL && !process.env.NETLIFY) {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
