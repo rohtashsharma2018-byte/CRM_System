@@ -405,9 +405,6 @@ body.light-theme #loginOverlay > div {
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <button class="btn-ghost rounded-lg" onclick="refreshAppData()" title="Refresh Data">
-          <i class="fas fa-sync-alt text-lg"></i>
-        </button>
         <button class="btn-ghost rounded-lg relative" onclick="toggleNotifications()">
           <i class="fas fa-bell text-lg"></i>
           <span class="notif-dot" id="notifDot"></span>
@@ -1219,46 +1216,6 @@ async function initApp() {
     navigateTo('dashboard');
   } catch (err) {
     console.error('App init error:', err);
-  }
-}
-
-async function refreshAppData() {
-  toast('Refreshing data...');
-  try {
-    const [
-      leadsData, usersData, teamsData, loanTypesData, sourcesData, distRulesData,
-      allocHistoryData, callsData, loanLabelsData, companyProfileData,
-      leadStatusesData, leadStatusLabelsData, leadPrioritiesData, leadPriorityLabelsData,
-      targetsData
-    ] = await Promise.all([
-      fetchAPI(buildLeadsUrl()),
-      fetchAPI('/users'),
-      fetchAPI('/teams'),
-      fetchAPI('/settings/loan_types'),
-      fetchAPI('/settings/sources'),
-      fetchAPI('/settings/distribution_rules'),
-      fetchAPI('/settings/allocation_history').catch(() => []),
-      fetchAPI('/calls').catch(() => []),
-      fetchAPI('/settings/loan_labels').catch(() => ({})),
-      fetchAPI('/settings/company_profile').catch(() => ({})),
-      fetchAPI('/settings/lead_statuses').catch(() => []),
-      fetchAPI('/settings/lead_status_labels').catch(() => ({})),
-      fetchAPI('/settings/lead_priorities').catch(() => []),
-      fetchAPI('/settings/lead_priority_labels').catch(() => ({})),
-      fetchAPI('/settings/targets').catch(() => ({}))
-    ]);
-    
-    setLeads(leadsData);
-    USERS = (usersData || []).map(u => ({ ...u, id: u._id }));
-    TEAMS = (teamsData || []).map(t => ({ ...t, id: t._id }));
-    allocationHistory = Array.isArray(allocHistoryData) ? allocHistoryData : [];
-    callLogs = Array.isArray(callsData) ? callsData : [];
-    
-    renderPage();
-    toast('Data refreshed successfully');
-  } catch (err) {
-    console.error('Failed to refresh data', err);
-    toast('Failed to refresh data', 'error');
   }
 }
 
