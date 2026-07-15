@@ -910,7 +910,7 @@ body.light-theme #loginOverlay > div {
 
 <script>
 // ========== STATE ==========
-const APP = {
+var APP = {
   currentPage: 'dashboard',
   currentPaginationPage: 1,
   currentRole: 'admin',
@@ -925,7 +925,7 @@ const APP = {
   activeSettingsTab: 'general'
 };
 
-let leadsFilter = { status: [], loanType: [], source: [], agent: [], aging: [], search: '', sort: 'created_at', dir: 'desc' };
+var leadsFilter = { status: [], loanType: [], source: [], agent: [], aging: [], search: '', sort: 'created_at', dir: 'desc' };
 
 function setTheme(theme) {
   APP.theme = theme;
@@ -963,29 +963,29 @@ function initTheme() {
 }
 
 // ========== DATA ==========
-let TEAMS = [];
-let USERS = [];
-let LOAN_TYPES = [];
-let LOAN_LABELS = { personal: 'Personal Loan', home: 'Home Loan', business: 'Business Loan', lap: 'Loan Against Property', credit_card: 'Credit Card' };
-let STATUSES = ['new', 'contacted', 'interested', 'documents_pending', 'login_done', 'disbursed', 'rejected', 'not_interested', 'dead'];
-let STATUS_LABELS = { new: 'New', contacted: 'Contacted', interested: 'Interested', documents_pending: 'Docs Pending', login_done: 'Login Done', disbursed: 'Disbursed', rejected: 'Rejected', not_interested: 'Not Interested', dead: 'Dead' };
-let PRIORITIES = ['cold', 'warm', 'hot'];
-let PRIORITY_LABELS = { cold: 'Cold', warm: 'Warm', hot: 'Hot' };
-let SOURCES = [];
+var TEAMS = [];
+var USERS = [];
+var LOAN_TYPES = [];
+var LOAN_LABELS = { personal: 'Personal Loan', home: 'Home Loan', business: 'Business Loan', lap: 'Loan Against Property', credit_card: 'Credit Card' };
+var STATUSES = ['new', 'contacted', 'interested', 'documents_pending', 'login_done', 'disbursed', 'rejected', 'not_interested', 'dead'];
+var STATUS_LABELS = { new: 'New', contacted: 'Contacted', interested: 'Interested', documents_pending: 'Docs Pending', login_done: 'Login Done', disbursed: 'Disbursed', rejected: 'Rejected', not_interested: 'Not Interested', dead: 'Dead' };
+var PRIORITIES = ['cold', 'warm', 'hot'];
+var PRIORITY_LABELS = { cold: 'Cold', warm: 'Warm', hot: 'Hot' };
+var SOURCES = [];
 
-let leads = [];
-let selectedLeadIds = [];
-let callLogs = [];
-let allocationHistory = [];
-let NOTIFICATIONS = [];
-let TARGETS = { teams: {}, agents: {} };
-let DISTRIBUTION_RULES = { method: 'round_robin', max_leads: 15, aging_days: 3 };
-let REPORTS_FILTER = { dateRange: 'all_time', teamId: 'all', agentId: 'all', startDate: '', endDate: '' };
-let leadIdCounter = 1;
-let callIdCounter = 1;
-let allocIdCounter = 1;
+var leads = [];
+var selectedLeadIds = [];
+var callLogs = [];
+var allocationHistory = [];
+var NOTIFICATIONS = [];
+var TARGETS = { teams: {}, agents: {} };
+var DISTRIBUTION_RULES = { method: 'round_robin', max_leads: 15, aging_days: 3 };
+var REPORTS_FILTER = { dateRange: 'all_time', teamId: 'all', agentId: 'all', startDate: '', endDate: '' };
+var leadIdCounter = 1;
+var callIdCounter = 1;
+var allocIdCounter = 1;
 
-let COMPANY_PROFILE = {
+var COMPANY_PROFILE = {
   name: '',
   contact_person: '',
   email: '',
@@ -1162,9 +1162,10 @@ async function initApp() {
   initSidebar();
   
   try {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
     if (user) {
-      APP.currentUserId = user.id;
+      APP.currentUserId = user.id || user._id;
       APP.currentRole = user.role;
       APP.userName = user.name;
     }
@@ -1175,12 +1176,12 @@ async function initApp() {
       leadStatusesData, leadStatusLabelsData, leadPrioritiesData, leadPriorityLabelsData,
       targetsData
     ] = await Promise.all([
-      fetchAPI(buildLeadsUrl()),
-      fetchAPI('/users'),
-      fetchAPI('/teams'),
-      fetchAPI('/settings/loan_types'),
-      fetchAPI('/settings/sources'),
-      fetchAPI('/settings/distribution_rules'),
+      fetchAPI(buildLeadsUrl()).catch(e => { console.error('Leads fetch failed', e); return { leads: [], total: 0 }; }),
+      fetchAPI('/users').catch(e => { console.error('Users fetch failed', e); return []; }),
+      fetchAPI('/teams').catch(e => { console.error('Teams fetch failed', e); return []; }),
+      fetchAPI('/settings/loan_types').catch(() => []),
+      fetchAPI('/settings/sources').catch(() => []),
+      fetchAPI('/settings/distribution_rules').catch(() => ({})),
       fetchAPI('/settings/allocation_history').catch(() => []),
       fetchAPI('/calls').catch(() => []),
       fetchAPI('/settings/loan_labels').catch(() => ({})),

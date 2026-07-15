@@ -1,15 +1,25 @@
 // Dashboard module
 export function renderDashboard() {
-  const vl = getVisibleLeads();
-  const totalLeads = vl.length;
-  const contacted = vl.filter(l => ['contacted','interested','documents_pending','login_done','disbursed'].includes(l.status)).length;
-  const converted = vl.filter(l => l.status === 'disbursed').length;
-  const convRate = totalLeads > 0 ? ((converted / totalLeads) * 100).toFixed(1) : 0;
-  const todayFollowups = vl.filter(l => {
-    const calls = getLeadCalls(l.id);
-    return calls.some(c => c.follow_up_at && new Date(c.follow_up_at).toDateString() === new Date().toDateString());
-  }).length;
-  const totalAmount = vl.reduce((s, l) => s + l.amount_requested, 0);
+  try {
+    const vl = typeof getVisibleLeads === 'function' ? getVisibleLeads() : [];
+    const totalLeads = vl.length;
+    
+    // Add debugging log for data issues
+    console.log('Dashboard Data Status:', {
+      totalLeads,
+      leadsCount: typeof leads !== 'undefined' ? leads.length : 'undefined',
+      usersCount: typeof USERS !== 'undefined' ? USERS.length : 'undefined',
+      teamsCount: typeof TEAMS !== 'undefined' ? TEAMS.length : 'undefined'
+    });
+
+    const contacted = vl.filter(l => ['contacted','interested','documents_pending','login_done','disbursed'].includes(l.status)).length;
+    const converted = vl.filter(l => l.status === 'disbursed').length;
+    const convRate = totalLeads > 0 ? ((converted / totalLeads) * 100).toFixed(1) : 0;
+    const todayFollowups = vl.filter(l => {
+      const calls = typeof getLeadCalls === 'function' ? getLeadCalls(l.id) : [];
+      return calls.some(c => c.follow_up_at && new Date(c.follow_up_at).toDateString() === new Date().toDateString());
+    }).length;
+    const totalAmount = vl.reduce((s, l) => s + (Number(l.amount_requested) || 0), 0);
   const hotLeads = vl.filter(l => l.priority === 'hot' && !['disbursed','rejected','dead','not_interested'].includes(l.status)).length;
 
   // Agent leaderboard (for admin/tl)
@@ -222,10 +232,18 @@ export function renderDashboard() {
       ${leaderboardHTML}
     </div>
   `;
+  } catch (err) {
+    console.error('Error rendering dashboard:', err);
+    return `<div class="p-8 text-center text-rose-400">Error loading dashboard: ${err.message}</div>`;
+  }
 }
 
 export function initDashboardCharts() {
-  const vl = getVisibleLeads();
+  const vl = typeof getVisibleLeads === 'function' ? getVisibleLeads() : [];
+  if (typeof getChartTheme !== 'function') {
+    console.error('getChartTheme not found');
+    return;
+  }
   const theme = getChartTheme();
   // Funnel chart
   const funnelData = STATUSES.map(s => {
