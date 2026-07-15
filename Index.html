@@ -405,6 +405,9 @@ body.light-theme #loginOverlay > div {
         </div>
       </div>
       <div class="flex items-center gap-3">
+        <button class="btn-ghost rounded-lg" onclick="refreshAppData()" title="Refresh Data">
+          <i class="fas fa-sync-alt text-lg"></i>
+        </button>
         <button class="btn-ghost rounded-lg relative" onclick="toggleNotifications()">
           <i class="fas fa-bell text-lg"></i>
           <span class="notif-dot" id="notifDot"></span>
@@ -1216,6 +1219,46 @@ async function initApp() {
     navigateTo('dashboard');
   } catch (err) {
     console.error('App init error:', err);
+  }
+}
+
+async function refreshAppData() {
+  toast('Refreshing data...');
+  try {
+    const [
+      leadsData, usersData, teamsData, loanTypesData, sourcesData, distRulesData,
+      allocHistoryData, callsData, loanLabelsData, companyProfileData,
+      leadStatusesData, leadStatusLabelsData, leadPrioritiesData, leadPriorityLabelsData,
+      targetsData
+    ] = await Promise.all([
+      fetchAPI(buildLeadsUrl()),
+      fetchAPI('/users'),
+      fetchAPI('/teams'),
+      fetchAPI('/settings/loan_types'),
+      fetchAPI('/settings/sources'),
+      fetchAPI('/settings/distribution_rules'),
+      fetchAPI('/settings/allocation_history').catch(() => []),
+      fetchAPI('/calls').catch(() => []),
+      fetchAPI('/settings/loan_labels').catch(() => ({})),
+      fetchAPI('/settings/company_profile').catch(() => ({})),
+      fetchAPI('/settings/lead_statuses').catch(() => []),
+      fetchAPI('/settings/lead_status_labels').catch(() => ({})),
+      fetchAPI('/settings/lead_priorities').catch(() => []),
+      fetchAPI('/settings/lead_priority_labels').catch(() => ({})),
+      fetchAPI('/settings/targets').catch(() => ({}))
+    ]);
+    
+    setLeads(leadsData);
+    USERS = (usersData || []).map(u => ({ ...u, id: u._id }));
+    TEAMS = (teamsData || []).map(t => ({ ...t, id: t._id }));
+    allocationHistory = Array.isArray(allocHistoryData) ? allocHistoryData : [];
+    callLogs = Array.isArray(callsData) ? callsData : [];
+    
+    renderPage();
+    toast('Data refreshed successfully');
+  } catch (err) {
+    console.error('Failed to refresh data', err);
+    toast('Failed to refresh data', 'error');
   }
 }
 
@@ -2680,7 +2723,7 @@ function renderAllocations() {
           <table class="data-table">
             <thead><tr><th>Lead</th><th>From</th><th>To</th><th>Allocated By</th><th>Date</th></tr></thead>
             <tbody>
-              ${recentAllocs.map(al => {
+              ${recentAllocs.filter(al => leads.some(l => l.id === al.lead_id || l._id === al.lead_id)).map(al => {
                 const lead = leads.find(l => l.id === al.lead_id || l._id === al.lead_id);
                 const to = getUser(al.to_user_id);
                 const by = getUser(al.allocated_by);
@@ -4957,6 +5000,8 @@ async function deleteLead(id) {
     toast('Lead deleted successfully');
     leads = leads.filter(l => l.id !== id && l._id !== id);
     callLogs = callLogs.filter(c => c.lead_id !== id);
+    const allocHistoryData = await fetchAPI('/settings/allocation_history').catch(() => []);
+    allocationHistory = Array.isArray(allocHistoryData) ? allocHistoryData : [];
     renderPage();
     return true;
   } catch (err) {

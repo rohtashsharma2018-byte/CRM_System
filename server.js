@@ -296,9 +296,19 @@ app.put('/api/leads/:id', authenticate, async (req, res) => {
 app.delete('/api/leads/:id', authenticate, async (req, res) => {
   try {
     if (req.user.role === 'agent') return res.status(403).json({ message: 'Forbidden' });
+    
+    // 1. Delete lead and call logs
     await Lead.findByIdAndDelete(req.params.id);
     await CallLog.deleteMany({ lead_id: req.params.id });
-    res.json({ message: 'Lead deleted' });
+
+    // 2. Remove related allocation history
+    const historySetting = await Setting.findOne({ key: 'allocation_history' });
+    if (historySetting && Array.isArray(historySetting.value)) {
+      historySetting.value = historySetting.value.filter(h => h.lead_id !== req.params.id);
+      await historySetting.save();
+    }
+    
+    res.json({ message: 'Lead and related history deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
