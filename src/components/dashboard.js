@@ -393,7 +393,7 @@ export function initDashboardCharts() {
 
     const sourceLabels = sourceCounts.map(item => item.label);
     const sourceData = sourceCounts.map(item => item.count);
-    const sourceFunnelColors = ['#0ea5e9', '#38bdf8', '#06b6d4', '#22d3ee', '#14b8a6', '#22d3ee', '#475569', '#64748b'];
+    const sourceFunnelColors = ['#0ea5e9', '#38bdf8', '#06b6d4', '#22d3ee', '#14b8a6', '#2d3748', '#475569', '#64748b'];
 
     APP.charts.sourceFunnel = new Chart(ctx4, {
       type: 'bar',
