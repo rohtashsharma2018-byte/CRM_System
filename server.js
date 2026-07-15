@@ -20,55 +20,86 @@ app.use(express.static(__dirname));
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI;
-if (MONGODB_URI) {
-  mongoose.connect(MONGODB_URI)
-    .then(async () => {
-      console.log('Connected to MongoDB Atlas');
-      // Create default admin if none exists
-      try {
-        const adminCount = await User.countDocuments({ role: 'admin' });
-        if (adminCount === 0) {
-          const admin = new User({
-            name: 'Admin User',
-            email: 'admin@paisaneed.com',
-            password: 'admin123',
-            role: 'admin'
-          });
-          await admin.save();
-          console.log('Default admin created: admin@paisaneed.com / admin123');
-          
-          // Seed default settings
-          await Setting.findOneAndUpdate({ key: 'loan_types' }, { value: ['personal', 'home', 'business', 'lap', 'credit_card'] }, { upsert: true });
-          await Setting.findOneAndUpdate({ key: 'sources' }, { value: ['website', 'referral', 'campaign', 'facebook', 'google', 'walkin'] }, { upsert: true });
-          await Setting.findOneAndUpdate({ key: 'distribution_rules' }, { value: { method: 'round_robin', max_leads: 15, aging_days: 3 } }, { upsert: true });
-          await Setting.findOneAndUpdate({ key: 'company_profile' }, { value: { name: 'Paisaneed CRM', contact_person: 'Admin', email: 'support@paisaneed.com', mobile: '+91 9876543210', address: '123, Financial District, Mumbai, India', website: 'www.paisaneed.com', other: '' } }, { upsert: true });
-        }
+let isSeeded = false;
 
-        // Always ensure lead statuses and priorities settings exist
-        const statusesExist = await Setting.findOne({ key: 'lead_statuses' });
-        if (!statusesExist) {
-          await Setting.create({ key: 'lead_statuses', value: ['new', 'contacted', 'interested', 'documents_pending', 'login_done', 'disbursed', 'rejected', 'not_interested', 'dead'] });
-        }
-        const statusLabelsExist = await Setting.findOne({ key: 'lead_status_labels' });
-        if (!statusLabelsExist) {
-          await Setting.create({ key: 'lead_status_labels', value: { new: 'New', contacted: 'Contacted', interested: 'Interested', documents_pending: 'Docs Pending', login_done: 'Login Done', disbursed: 'Disbursed', rejected: 'Rejected', not_interested: 'Not Interested', dead: 'Dead' } });
-        }
-        const prioritiesExist = await Setting.findOne({ key: 'lead_priorities' });
-        if (!prioritiesExist) {
-          await Setting.create({ key: 'lead_priorities', value: ['cold', 'warm', 'hot'] });
-        }
-        const priorityLabelsExist = await Setting.findOne({ key: 'lead_priority_labels' });
-        if (!priorityLabelsExist) {
-          await Setting.create({ key: 'lead_priority_labels', value: { cold: 'Cold', warm: 'Warm', hot: 'Hot' } });
-        }
-      } catch (err) {
-        console.error('Error seeding data:', err);
-      }
-    })
-    .catch(err => console.error('MongoDB connection error:', err));
-} else {
-  console.warn('MONGODB_URI not found in environment variables. Running without DB.');
-}
+const connectToDatabase = async () => {
+  if (mongoose.connection.readyState === 1) return;
+  
+  if (!MONGODB_URI) {
+    console.warn('MONGODB_URI not found in environment variables. Running without DB.');
+    return;
+  }
+
+  try {
+    await mongoose.connect(MONGODB_URI);
+    console.log('Connected to MongoDB Atlas');
+    
+    if (!isSeeded) {
+      await seedDatabase();
+      isSeeded = true;
+    }
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+    throw err;
+  }
+};
+
+const seedDatabase = async () => {
+  // Create default admin if none exists
+  try {
+    const adminCount = await User.countDocuments({ role: 'admin' });
+    if (adminCount === 0) {
+      const admin = new User({
+        name: 'Admin User',
+        email: 'admin@paisaneed.com',
+        password: 'admin123',
+        role: 'admin'
+      });
+      await admin.save();
+      console.log('Default admin created: admin@paisaneed.com / admin123');
+      
+      // Seed default settings
+      await Setting.findOneAndUpdate({ key: 'loan_types' }, { value: ['personal', 'home', 'business', 'lap', 'credit_card'] }, { upsert: true });
+      await Setting.findOneAndUpdate({ key: 'sources' }, { value: ['website', 'referral', 'campaign', 'facebook', 'google', 'walkin'] }, { upsert: true });
+      await Setting.findOneAndUpdate({ key: 'distribution_rules' }, { value: { method: 'round_robin', max_leads: 15, aging_days: 3 } }, { upsert: true });
+      await Setting.findOneAndUpdate({ key: 'company_profile' }, { value: { name: 'Paisaneed CRM', contact_person: 'Admin', email: 'support@paisaneed.com', mobile: '+91 9876543210', address: '123, Financial District, Mumbai, India', website: 'www.paisaneed.com', other: '' } }, { upsert: true });
+    }
+
+    // Always ensure lead statuses and priorities settings exist
+    const statusesExist = await Setting.findOne({ key: 'lead_statuses' });
+    if (!statusesExist) {
+      await Setting.create({ key: 'lead_statuses', value: ['new', 'contacted', 'interested', 'documents_pending', 'login_done', 'disbursed', 'rejected', 'not_interested', 'dead'] });
+    }
+    const statusLabelsExist = await Setting.findOne({ key: 'lead_status_labels' });
+    if (!statusLabelsExist) {
+      await Setting.create({ key: 'lead_status_labels', value: { new: 'New', contacted: 'Contacted', interested: 'Interested', documents_pending: 'Docs Pending', login_done: 'Login Done', disbursed: 'Disbursed', rejected: 'Rejected', not_interested: 'Not Interested', dead: 'Dead' } });
+    }
+    const prioritiesExist = await Setting.findOne({ key: 'lead_priorities' });
+    if (!prioritiesExist) {
+      await Setting.create({ key: 'lead_priorities', value: ['cold', 'warm', 'hot'] });
+    }
+    const priorityLabelsExist = await Setting.findOne({ key: 'lead_priority_labels' });
+    if (!priorityLabelsExist) {
+      await Setting.create({ key: 'lead_priority_labels', value: { cold: 'Cold', warm: 'Warm', hot: 'Hot' } });
+    }
+  } catch (err) {
+    console.error('Error seeding data:', err);
+  }
+};
+
+// Database Connection Middleware
+app.use(async (req, res, next) => {
+  if (req.url.startsWith('/api')) {
+    try {
+      await connectToDatabase();
+      next();
+    } catch (err) {
+      return res.status(503).json({ message: 'Database connection failed. Please try again in a few seconds.' });
+    }
+  } else {
+    next();
+  }
+});
 
 // Auth Middleware
 const authenticate = (req, res, next) => {
