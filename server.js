@@ -15,33 +15,43 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI;
 let isSeeded = false;
+let connectionPromise = null;
 
 const connectToDatabase = async () => {
   if (mongoose.connection.readyState === 1) return;
+  if (mongoose.connection.readyState === 2) {
+    if (connectionPromise) return connectionPromise;
+  }
   
   if (!MONGODB_URI) {
-    console.warn('MONGODB_URI not found in environment variables. Running without DB.');
+    console.warn('MONGODB_URI not found in environment variables. Database operations will fail.');
     return;
   }
 
-  try {
-    await mongoose.connect(MONGODB_URI);
-    console.log('Connected to MongoDB Atlas');
-    
-    if (!isSeeded) {
-      await seedDatabase();
-      isSeeded = true;
-    }
-  } catch (err) {
-    console.error('MongoDB connection error:', err);
-    throw err;
+  if (!connectionPromise) {
+    connectionPromise = mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+    }).then(async () => {
+      console.log('Connected to MongoDB Atlas');
+      if (!isSeeded) {
+        await seedDatabase();
+        isSeeded = true;
+      }
+      return mongoose.connection;
+    }).catch(err => {
+      connectionPromise = null;
+      console.error('MongoDB connection error:', err);
+      throw err;
+    });
   }
+  
+  return connectionPromise;
 };
 
 const seedDatabase = async () => {
@@ -62,42 +72,37 @@ const seedDatabase = async () => {
       await Setting.findOneAndUpdate({ key: 'loan_types' }, { value: ['personal', 'home', 'business', 'lap', 'credit_card'] }, { upsert: true });
       await Setting.findOneAndUpdate({ key: 'sources' }, { value: ['website', 'referral', 'campaign', 'facebook', 'google', 'walkin'] }, { upsert: true });
       await Setting.findOneAndUpdate({ key: 'distribution_rules' }, { value: { method: 'round_robin', max_leads: 15, aging_days: 3 } }, { upsert: true });
-      await Setting.findOneAndUpdate({ key: 'company_profile' }, { value: { name: 'Paisaneed CRM', contact_person: 'Admin', email: 'support@paisaneed.com', mobile: '+91 9876543210', address: '123, Financial District, Mumbai, India', website: 'www.paisaneed.com', other: '' } }, { upsert: true });
+      await Setting.findOneAndUpdate({ key: 'company_profile' }, { value: { name: 'CRM System', contact_person: 'Admin', email: 'support@paisaneed.com', mobile: '+91 9876543210', address: '123, Financial District, Mumbai, India', website: 'www.paisaneed.com', other: '' } }, { upsert: true });
     }
 
     // Always ensure lead statuses and priorities settings exist
-    const statusesExist = await Setting.findOne({ key: 'lead_statuses' });
-    if (!statusesExist) {
-      await Setting.create({ key: 'lead_statuses', value: ['new', 'contacted', 'interested', 'documents_pending', 'login_done', 'disbursed', 'rejected', 'not_interested', 'dead'] });
-    }
-    const statusLabelsExist = await Setting.findOne({ key: 'lead_status_labels' });
-    if (!statusLabelsExist) {
-      await Setting.create({ key: 'lead_status_labels', value: { new: 'New', contacted: 'Contacted', interested: 'Interested', documents_pending: 'Docs Pending', login_done: 'Login Done', disbursed: 'Disbursed', rejected: 'Rejected', not_interested: 'Not Interested', dead: 'Dead' } });
-    }
-    const prioritiesExist = await Setting.findOne({ key: 'lead_priorities' });
-    if (!prioritiesExist) {
-      await Setting.create({ key: 'lead_priorities', value: ['cold', 'warm', 'hot'] });
-    }
-    const priorityLabelsExist = await Setting.findOne({ key: 'lead_priority_labels' });
-    if (!priorityLabelsExist) {
-      await Setting.create({ key: 'lead_priority_labels', value: { cold: 'Cold', warm: 'Warm', hot: 'Hot' } });
+    const settingsToSeed = [
+      { key: 'lead_statuses', value: ['new', 'contacted', 'interested', 'documents_pending', 'login_done', 'disbursed', 'rejected', 'not_interested', 'dead'] },
+      { key: 'lead_status_labels', value: { new: 'New', contacted: 'Contacted', interested: 'Interested', documents_pending: 'Docs Pending', login_done: 'Login Done', disbursed: 'Disbursed', rejected: 'Rejected', not_interested: 'Not Interested', dead: 'Dead' } },
+      { key: 'lead_priorities', value: ['cold', 'warm', 'hot'] },
+      { key: 'lead_priority_labels', value: { cold: 'Cold', warm: 'Warm', hot: 'Hot' } },
+      { key: 'targets', value: { monthly_leads: 100, monthly_disbursement: 1000000 } }
+    ];
+
+    for (const setting of settingsToSeed) {
+      const exists = await Setting.findOne({ key: setting.key });
+      if (!exists) {
+        await Setting.create(setting);
+      }
     }
   } catch (err) {
     console.error('Error seeding data:', err);
   }
 };
 
-// Database Connection Middleware
-app.use(async (req, res, next) => {
-  if (req.url.startsWith('/api')) {
-    try {
-      await connectToDatabase();
-      next();
-    } catch (err) {
-      return res.status(503).json({ message: 'Database connection failed. Please try again in a few seconds.' });
-    }
-  } else {
+// Database Connection Middleware - only for /api routes
+app.use('/api', async (req, res, next) => {
+  try {
+    await connectToDatabase();
     next();
+  } catch (err) {
+    console.error('DB Middleware Error:', err);
+    return res.status(503).json({ message: 'Database connection failed. Please check your configuration.' });
   }
 });
 
@@ -172,7 +177,7 @@ app.post('/api/auth/change-password', authenticate, async (req, res) => {
 // --- LEADS ROUTES ---
 app.get('/api/leads', authenticate, async (req, res) => {
   try {
-    const { page = 1, limit = 50, sort = 'created_at', dir = 'desc', search = '', status, loanType, source, agent, aging } = req.query;
+    const { page = 1, limit = 50, sort = 'created_at', dir = 'desc', search = '', status, loanType, source, agent, aging, assignment } = req.query;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
 
@@ -183,6 +188,13 @@ app.get('/api/leads', authenticate, async (req, res) => {
       const agentsInTeam = await User.find({ team_id: req.user.team_id }).select('_id');
       const agentIds = agentsInTeam.map(a => a._id);
       query.assigned_agent_id = { $in: agentIds };
+    }
+
+    if (assignment === 'assigned') {
+      query.assigned_agent_id = { ...query.assigned_agent_id, $exists: true, $ne: null };
+    } else if (assignment === 'unassigned') {
+      // If TL or Agent, this will likely return empty results because their base query requires assigned_agent_id
+      query.assigned_agent_id = null;
     }
 
     if (search) {
@@ -566,6 +578,9 @@ app.post('/api/restore', authenticate, async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 });
+
+// Static files
+app.use(express.static(__dirname));
 
 // Serve Index.html for any other route
 app.get('*', (req, res) => {

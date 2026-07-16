@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Paisa Need – Lead & Calling Agent CRM</title>
+<title>CRM System – Lead & Calling Agent CRM</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -21,7 +21,7 @@ h1,h2,h3,h4,h5,h6{font-family:'Outfit',sans-serif}
 ::-webkit-scrollbar-thumb:hover{background:#57534e}
 
 /* Sidebar */
-.sidebar{width:260px;min-height:100vh;background:#1c1917;border-right:1px solid #292524;position:fixed;left:0;top:0;z-index:40;transition:width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)}
+.sidebar{width:260px;min-height:100vh;background:#1c1917;border-right:1px solid #292524;position:fixed;left:0;top:0;z-index:40;transition:width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);border-radius:0 24px 24px 0;overflow:hidden}
 .sidebar.collapsed{transform:translateX(-260px)}
 .sidebar-link{display:flex;align-items:center;gap:12px;padding:10px 20px;color:#a8a29e;font-size:14px;transition:all .2s;border-radius:8px;margin:2px 12px;cursor:pointer}
 .sidebar-link:hover{color:#e7e5e4;background:#292524}
@@ -326,7 +326,7 @@ body.light-theme #loginOverlay > div {
         <i class="fas fa-coins text-white text-sm"></i>
       </div>
       <div class="logo-text">
-        <h1 class="font-display font-bold text-base text-white leading-tight">Paisa Need</h1>
+        <h1 class="font-display font-bold text-base text-white leading-tight">CRM System</h1>
         <p class="text-[11px] text-surface-400 font-medium tracking-wide uppercase">Lead CRM</p>
       </div>
     </div>
@@ -401,7 +401,7 @@ body.light-theme #loginOverlay > div {
         </button>
         <div class="relative">
           <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-surface-500 text-sm"></i>
-          <input type="text" placeholder="Search leads, agents..." class="form-input pl-10 pr-4 py-2 w-64 md:w-80 text-sm" id="globalSearch" oninput="handleGlobalSearch(this.value)">
+          <input type="text" placeholder="Search leads, agents..." class="form-input pl-10 pr-4 py-2 w-40 sm:w-64 md:w-80 text-sm" id="globalSearch" oninput="handleGlobalSearch(this.value)">
         </div>
       </div>
       <div class="flex items-center gap-3">
@@ -521,6 +521,16 @@ body.light-theme #loginOverlay > div {
       <div>
         <label class="block text-sm font-medium text-surface-400 mb-1.5">Notes</label>
         <textarea class="form-input" id="leadNotes" placeholder="Any initial notes about this lead..."></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-surface-400 mb-1.5">Attachments (Max 2 PDFs, Max 1MB each)</label>
+        <div class="flex flex-col gap-2">
+          <input type="file" id="leadAttachments" class="hidden" multiple accept="application/pdf" onchange="handleFileSelect(event)">
+          <button type="button" class="btn btn-secondary w-full" onclick="document.getElementById('leadAttachments').click()">
+            <i class="fas fa-paperclip mr-2"></i> Choose PDF Files
+          </button>
+          <div id="attachmentList" class="space-y-2"></div>
+        </div>
       </div>
       <div id="duplicateWarning" class="hidden bg-amber-900/30 border border-amber-600/50 rounded-lg p-3 text-sm text-amber-300">
         <i class="fas fa-exclamation-triangle mr-2"></i><span id="duplicateMsg"></span>
@@ -775,6 +785,24 @@ body.light-theme #loginOverlay > div {
   </div>
 </div>
 
+<!-- Lead Attachments Modal -->
+<div class="modal-overlay" id="leadAttachmentsModal">
+  <div class="modal" style="max-width:400px">
+    <div class="p-6 border-b border-surface-800 flex items-center justify-between">
+      <h3 class="font-display font-bold text-lg text-white">Lead Documents</h3>
+      <button class="btn-ghost rounded-lg" onclick="closeModal('leadAttachmentsModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="p-6">
+      <div id="leadAttachmentsList" class="space-y-3">
+        <!-- Attachments will be rendered here -->
+      </div>
+      <div class="mt-6">
+        <button onclick="closeModal('leadAttachmentsModal')" class="btn btn-secondary w-full">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Lead Detail Modal -->
 <div class="modal-overlay" id="leadDetailModal">
   <div class="modal" style="max-width:720px">
@@ -913,10 +941,11 @@ const APP = {
   teamRoleFilter: 'all',
   teamViewMode: 'list',
   theme: localStorage.getItem('theme') || 'dark',
-  activeSettingsTab: 'general'
+  activeSettingsTab: 'general',
+  currentLeadAttachments: []
 };
 
-let leadsFilter = { status: [], loanType: [], source: [], agent: [], aging: [], search: '', sort: 'created_at', dir: 'desc' };
+let leadsFilter = { status: [], loanType: [], source: [], agent: [], aging: [], assignment: 'all', search: '', sort: 'created_at', dir: 'desc' };
 
 function setTheme(theme) {
   APP.theme = theme;
@@ -1022,15 +1051,23 @@ async function fetchAPI(endpoint, options = {}) {
   
   try {
     const response = await fetch(url, { ...options, headers });
-    if (response.status === 401 && APP.token) {
-      handleLogout();
-      return null;
+    
+    if (response.status === 401) {
+      const data = await response.json().catch(() => ({}));
+      const msg = data.message || 'Session expired';
+      if (APP.token) {
+        handleLogout();
+      }
+      throw new Error(msg);
     }
+
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Something went wrong');
     return data;
   } catch (err) {
-    toast(err.message, 'error');
+    if (err.message !== 'Invalid token' && err.message !== 'Session expired' && err.message !== 'Unauthorized') {
+      toast(err.message, 'error');
+    }
     throw err;
   }
 }
@@ -1124,6 +1161,7 @@ function buildLeadsUrl() {
     loanType: leadsFilter.loanType.join(','),
     source: leadsFilter.source.join(','),
     agent: leadsFilter.agent.join(','),
+    assignment: leadsFilter.assignment,
   });
   return `/leads?${params.toString()}`;
 }
@@ -1135,6 +1173,11 @@ async function fetchLeads() {
 }
 
 function setLeads(data) {
+  if (!data) {
+    leads = [];
+    APP.totalLeads = 0;
+    return;
+  }
   leads = (data.leads || []).map(l => ({ ...l, id: l._id }));
   APP.totalLeads = data.total || 0;
   APP.currentPaginationPage = data.page || 1;
@@ -1219,6 +1262,14 @@ async function initApp() {
     navigateTo('dashboard');
   } catch (err) {
     console.error('App init error:', err);
+    let errorMsg = err.message;
+    if (err.message === 'Failed to fetch') {
+      errorMsg = 'Could not connect to the server. Please check if the backend is running.';
+    }
+    toast('Initialization Error: ' + errorMsg, 'error');
+    if (err.message === 'Invalid token' || err.message === 'Session expired' || err.message === 'Unauthorized') {
+      handleLogout();
+    }
   }
 }
 
@@ -1602,8 +1653,29 @@ function destroyCharts() {
 }
 
 // ========== DASHBOARD ==========
+function renderAssignmentFilter(extraClass = '') {
+  const colorClass = leadsFilter.assignment === 'all' ? 'bg-yellow-500 border-yellow-600 text-black font-semibold' :
+                     leadsFilter.assignment === 'assigned' ? 'bg-blue-600 border-blue-700 text-white font-semibold' :
+                     'bg-red-600 border-red-700 text-white font-semibold';
+  
+  return `
+    <select class="form-input py-2 text-sm w-36 ${colorClass} ${extraClass} transition-all cursor-pointer focus:ring-offset-2 focus:ring-offset-surface-900" onchange="leadsFilter.assignment=this.value;APP.currentPaginationPage=1; (APP.currentPage === 'leads' ? fetchLeads() : renderPage())">
+      <option value="all" class="bg-surface-800 text-white" ${leadsFilter.assignment === 'all' ? 'selected' : ''}>All Leads</option>
+      <option value="assigned" class="bg-surface-800 text-white" ${leadsFilter.assignment === 'assigned' ? 'selected' : ''}>Assigned</option>
+      <option value="unassigned" class="bg-surface-800 text-white" ${leadsFilter.assignment === 'unassigned' ? 'selected' : ''}>Unassigned</option>
+    </select>
+  `;
+}
+
 function renderDashboard() {
-  const vl = getVisibleLeads();
+  let vl = getVisibleLeads();
+  
+  if (leadsFilter.assignment === 'assigned') {
+    vl = vl.filter(l => l.assigned_agent_id);
+  } else if (leadsFilter.assignment === 'unassigned') {
+    vl = vl.filter(l => !l.assigned_agent_id);
+  }
+
   const totalLeads = vl.length;
   const contacted = vl.filter(l => ['contacted','interested','documents_pending','login_done','disbursed'].includes(l.status)).length;
   const converted = vl.filter(l => l.status === 'disbursed').length;
@@ -1740,12 +1812,14 @@ function renderDashboard() {
 
   return `
     <div class="fade-in">
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 class="font-display font-bold text-2xl text-white">Dashboard</h2>
-          <p class="text-surface-400 text-sm mt-1">${APP.currentRole === 'admin' ? 'Company-wide overview' : APP.currentRole === 'tl' ? getTeam(getUser(APP.currentUserId)?.team_id)?.name + ' team overview' : 'Your performance at a glance'}</p>
         </div>
-        ${APP.currentRole === 'admin' ? '<button class="btn btn-secondary btn-sm" onclick="openModal(\'importModal\')"><i class="fas fa-file-import"></i> Bulk Import</button>' : ''}
+        <div class="flex items-center gap-3">
+          ${renderAssignmentFilter()}
+          ${APP.currentRole === 'admin' ? '<button class="btn btn-secondary btn-sm" onclick="openModal(\'importModal\')"><i class="fas fa-file-import"></i> Bulk Import</button>' : ''}
+        </div>
       </div>
 
       <!-- Stat cards -->
@@ -1878,13 +1952,13 @@ function initDashboardCharts() {
         data: {
           labels: teamData.map(t => t.name),
           datasets: [
-            { label: 'Total Leads', data: teamData.map(t => t.total), backgroundColor: theme.gridColor, borderRadius: 6, borderSkipped: false },
+            { label: 'Total Leads', data: teamData.map(t => t.total), backgroundColor: '#FBBC05', borderRadius: 6, borderSkipped: false },
             { label: 'Converted', data: teamData.map(t => t.converted), backgroundColor: '#10b981', borderRadius: 6, borderSkipped: false }
           ]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: theme.tickColor, font: { size: 12 } } } },
+          plugins: { legend: { labels: { color: theme.tickColor, font: { size: 12 }, padding: 12, usePointStyle: true, boxWidth: 10, boxHeight: 10 } } },
           scales: {
             x: { grid: { display: false }, ticks: { color: theme.tickColor } },
             y: { grid: { color: theme.gridColor }, ticks: { color: theme.tickColor } }
@@ -1930,7 +2004,7 @@ function initDashboardCharts() {
         },
         options: {
           responsive: true, maintainAspectRatio: false, cutout: '65%',
-          plugins: { legend: { position: 'right', labels: { color: theme.tickColor, font: { size: 11 }, padding: 12, usePointStyle: true, pointStyleWidth: 8 } } }
+          plugins: { legend: { position: 'right', labels: { color: theme.tickColor, font: { size: 11 }, padding: 12, usePointStyle: true, boxWidth: 10, boxHeight: 10 } } }
         }
       });
     }
@@ -1942,7 +2016,7 @@ function initDashboardCharts() {
     if (APP.charts.loanType) APP.charts.loanType.destroy();
     const typeCounts = {};
     vl.forEach(l => {
-      const t = l.loan_type || 'unknown';
+      const t = (l.loan_type || 'unknown').toString().toLowerCase().trim();
       typeCounts[t] = (typeCounts[t] || 0) + 1;
     });
     const activeLoanTypes = Object.keys(typeCounts);
@@ -1967,7 +2041,7 @@ function initDashboardCharts() {
         plugins: { 
           legend: { 
             position: 'right', 
-            labels: { color: theme.tickColor, font: { size: 11 }, padding: 12, usePointStyle: true, pointStyleWidth: 8 } 
+            labels: { color: theme.tickColor, font: { size: 11 }, padding: 12, usePointStyle: true, boxWidth: 10, boxHeight: 10 } 
           },
           tooltip: {
             callbacks: {
@@ -2040,6 +2114,12 @@ function getFilteredLeads() {
   if (leadsFilter.source.length > 0) vl = vl.filter(l => leadsFilter.source.includes(l.source));
   if (leadsFilter.agent.length > 0 && (APP.currentRole === 'admin' || APP.currentRole === 'tl')) vl = vl.filter(l => leadsFilter.agent.includes(l.assigned_agent_id));
   
+  if (leadsFilter.assignment === 'assigned') {
+    vl = vl.filter(l => l.assigned_agent_id);
+  } else if (leadsFilter.assignment === 'unassigned') {
+    vl = vl.filter(l => !l.assigned_agent_id);
+  }
+  
   if (leadsFilter.aging.length > 0) {
     const now = Date.now();
     vl = vl.filter(l => {
@@ -2089,7 +2169,7 @@ function renderLeads() {
           <h2 class="font-display font-bold text-2xl text-white">Leads</h2>
           <p id="leadsCount" class="text-surface-400 text-sm mt-1">${vl.length} leads found ${selectedLeadIds.length > 0 ? `· <span class="text-brand-400 font-semibold">${selectedLeadIds.length} selected</span>` : ''}</p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           ${selectedLeadIds.length > 0 ? `
             <div class="flex items-center gap-2 bg-brand-900/20 border border-brand-800/30 p-1 rounded-lg px-2 mr-2">
               <span class="text-xs text-brand-300 font-medium mr-1">Bulk Actions:</span>
@@ -2117,11 +2197,13 @@ function renderLeads() {
           ${renderMultiSelect('loanType', 'Loan Type', [...new Set(leads.map(l => l.loan_type || 'personal'))].map(s => ({ value: s, label: LOAN_LABELS[s] || s })))}
           ${renderMultiSelect('source', 'Source', [...new Set(leads.map(l => l.source || 'website'))].map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) })))}
           
+          ${renderAssignmentFilter()}
+
           ${canManage ? renderMultiSelect('agent', 'Agent', agents.map(a => ({ value: a.id, label: a.name }))) : ''}
           
           ${renderMultiSelect('aging', 'Aging', uniqueAgingDays.map(d => ({ value: String(d), label: `${d} Days` })))}
 
-          <button class="btn btn-ghost btn-sm" onclick="leadsFilter={status:[],loanType:[],source:[],agent:[],aging:[],search:'',sort:'created_at',dir:'desc'};APP.currentPaginationPage=1;renderPage()"><i class="fas fa-times"></i> Clear</button>
+          <button class="btn btn-ghost btn-sm" onclick="leadsFilter={status:[],loanType:[],source:[],agent:[],aging:[],assignment:'all',search:'',sort:'created_at',dir:'desc'};APP.currentPaginationPage=1;fetchLeads()"><i class="fas fa-times"></i> Clear</button>
         </div>
       </div>
 
@@ -2146,11 +2228,12 @@ function renderLeads() {
                 <th>Aging</th>
                 <th class="cursor-pointer" onclick="toggleSort('assigned_at')">Assigned Date ${sortIcon('assigned_at')}</th>
                 <th class="cursor-pointer" onclick="toggleSort('created_at')">Created ${sortIcon('created_at')}</th>
+                <th>Docs</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="leadsTableBody">
-              ${paginatedLeads.length === 0 ? `<tr><td colspan="${canManage?12:11}" class="text-center py-12 text-surface-500">No leads found</td></tr>` :
+              ${paginatedLeads.length === 0 ? `<tr><td colspan="${canManage?14:13}" class="text-center py-12 text-surface-500">No leads found</td></tr>` :
               paginatedLeads.map(l => renderLeadRow(l, canManage)).join('')}
             </tbody>
           </table>
@@ -2200,6 +2283,18 @@ function renderLeadRow(l, canManage) {
     <td class="text-sm text-surface-400">${formatDate(l.created_at)}</td>
     <td>
       <div class="flex gap-1">
+        ${l.attachments && l.attachments.length > 0 ? `
+          <button class="text-rose-500 hover:text-rose-400 transition-colors p-1" onclick="showLeadAttachmentsModal('${l.id || l._id}')" title="View Documents">
+            <div class="relative">
+              <i class="fas fa-file-pdf text-lg"></i>
+              <span class="absolute -top-1 -right-1 bg-brand-500 text-white text-[8px] w-3 h-3 rounded-full flex items-center justify-center border border-surface-900">${l.attachments.length}</span>
+            </div>
+          </button>
+        ` : '<span class="text-surface-600">—</span>'}
+      </div>
+    </td>
+    <td>
+      <div class="flex gap-1">
         <button class="btn-ghost rounded text-xs text-blue-600" onclick="showLeadDetail('${l.id}')" title="View"><i class="fas fa-eye"></i></button>
         ${APP.currentRole !== 'agent' ? `<button class="btn-ghost rounded text-xs text-red-600" onclick="showEditLeadModal('${l.id}')" title="Edit"><i class="fas fa-edit"></i></button>` : ''}
         <button class="btn-ghost rounded text-xs text-brand-400" onclick="showCallLogModal('${l.id}')" title="Log Call"><i class="fas fa-phone-alt"></i></button>
@@ -2215,9 +2310,10 @@ function handleLeadsSearch(val) {
   fetchLeads();
 }
 
-function renderMultiSelect(key, label, options) {
-  const selected = leadsFilter[key];
-  const labelText = selected.length === 0 ? `All ${label}s` : selected.length === 1 ? options.find(o => o.value === selected[0])?.label : `${selected.length} ${label}s`;
+function renderMultiSelect(key, label, options = []) {
+  const selected = leadsFilter[key] || [];
+  let labelText = selected.length === 0 ? (label === 'Status' ? 'All Status' : label === 'Aging' ? 'All Aging' : `All ${label}s`) : selected.length === 1 ? options.find(o => o.value === selected[0])?.label : `${selected.length} ${label}s`;
+  if (!labelText) labelText = `All ${label}s`;
   
   return `
     <div class="relative group">
@@ -2269,15 +2365,24 @@ function toggleSort(field) {
 
 // ========== PIPELINE (KANBAN) ==========
 function renderPipeline() {
-  const vl = getVisibleLeads();
+  let vl = getVisibleLeads();
+  
+  if (leadsFilter.assignment === 'assigned') {
+    vl = vl.filter(l => l.assigned_agent_id);
+  } else if (leadsFilter.assignment === 'unassigned') {
+    vl = vl.filter(l => !l.assigned_agent_id);
+  }
+
   const pipelineStatuses = ['new','contacted','interested','documents_pending','login_done','disbursed'];
   const statusColors = { new: '#34d399', contacted: '#38bdf8', interested: '#c084fc', documents_pending: '#fbbf24', login_done: '#60a5fa', disbursed: '#6ee7b7' };
 
   return `
     <div class="fade-in">
-      <div class="mb-6">
-        <h2 class="font-display font-bold text-2xl text-white">Lead Pipeline</h2>
-        <p class="text-surface-400 text-sm mt-1">Drag-free kanban view of your lead pipeline</p>
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 class="font-display font-bold text-2xl text-white">Lead Pipeline</h2>
+        </div>
+        ${renderAssignmentFilter()}
       </div>
       <div class="flex gap-4 overflow-x-auto pb-4">
         ${pipelineStatuses.map(s => {
@@ -2318,7 +2423,14 @@ function renderPipeline() {
 
 // ========== CALLING QUEUE ==========
 function renderCallingQueue() {
-  const vl = getVisibleLeads().filter(l => !['disbursed','rejected','dead','not_interested'].includes(l.status));
+  let vl = getVisibleLeads().filter(l => !['disbursed','rejected','dead','not_interested'].includes(l.status));
+  
+  if (leadsFilter.assignment === 'assigned') {
+    vl = vl.filter(l => l.assigned_agent_id);
+  } else if (leadsFilter.assignment === 'unassigned') {
+    vl = vl.filter(l => !l.assigned_agent_id);
+  }
+
   // Sort: follow-ups today first, then hot, then new, then others
   vl.sort((a, b) => {
     const aFollowup = getLeadCalls(a.id).some(c => c.follow_up_at && new Date(c.follow_up_at).toDateString() === new Date().toDateString());
@@ -2333,11 +2445,11 @@ function renderCallingQueue() {
 
   return `
     <div class="fade-in">
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 class="font-display font-bold text-2xl text-white">Calling Queue</h2>
-          <p class="text-surface-400 text-sm mt-1">${vl.length} leads to call — prioritized by follow-ups and priority</p>
         </div>
+        ${renderAssignmentFilter()}
       </div>
       <div class="space-y-3">
         ${vl.map((l, i) => {
@@ -2511,7 +2623,7 @@ function renderTeam() {
 
   return `
     <div class="fade-in">
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 class="font-display font-bold text-2xl text-white">Team Management</h2>
           <p class="text-surface-400 text-sm mt-1">${usersToShow.length} members</p>
@@ -2625,7 +2737,7 @@ function renderAllocations() {
 
   return `
     <div class="fade-in">
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 class="font-display font-bold text-2xl text-white">Allocations</h2>
           <p class="text-surface-400 text-sm mt-1">Allocation history and lead distribution</p>
@@ -3522,14 +3634,28 @@ function renderReports() {
   }
 
   // Filter Leads
-  let filteredLeads = leads.filter(l => agentIds.includes(l.assigned_agent_id));
+  let filteredLeads = leads.filter(l => {
+    if (leadsFilter.assignment === 'assigned') return !!l.assigned_agent_id;
+    if (leadsFilter.assignment === 'unassigned') return !l.assigned_agent_id;
+    return true;
+  });
+
+  if (leadsFilter.assignment !== 'unassigned') {
+    filteredLeads = filteredLeads.filter(l => agentIds.includes(l.assigned_agent_id));
+  }
+
   filteredLeads = filteredLeads.filter(l => {
     const d = new Date(l.created_at);
     return d >= startDate && d <= endDate;
   });
 
   // Filter CallLogs
-  let filteredCallLogs = callLogs.filter(c => agentIds.includes(c.agent_id));
+  const filteredLeadIds = new Set(filteredLeads.map(l => l.id));
+  let filteredCallLogs = callLogs.filter(c => filteredLeadIds.has(c.lead_id));
+  
+  if (leadsFilter.assignment !== 'unassigned') {
+    filteredCallLogs = filteredCallLogs.filter(c => agentIds.includes(c.agent_id));
+  }
   filteredCallLogs = filteredCallLogs.filter(c => {
     const d = new Date(c.created_at);
     return d >= startDate && d <= endDate;
@@ -3620,6 +3746,9 @@ function renderReports() {
               ${availableAgents.map(a => `<option value="${a.id}" ${REPORTS_FILTER.agentId === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
             </select>
           ` : ''}
+
+          ${renderAssignmentFilter('rounded-full')}
+
           <button class="btn btn-ghost text-sm text-surface-400 hover:text-white transition-colors" onclick="clearReportsFilter()">
             <i class="fas fa-times"></i> Clear Filter
           </button>
@@ -4158,6 +4287,8 @@ function populateCallPrioritySelect(selectedId) {
 function showAddLeadModal() {
   document.getElementById('leadEditId').value = '';
   document.getElementById('leadForm').reset();
+  APP.currentLeadAttachments = [];
+  renderAttachmentList();
   document.getElementById('leadModalTitle').textContent = 'Add New Lead';
   document.getElementById('leadSubmitBtn').textContent = 'Add Lead';
   document.getElementById('duplicateWarning').classList.add('hidden');
@@ -4171,7 +4302,7 @@ function showAddLeadModal() {
 }
 
 function showEditLeadModal(id) {
-  const lead = leads.find(l => l.id === id);
+  const lead = leads.find(l => l.id === id || l._id === id);
   if (!lead) return;
   document.getElementById('leadEditId').value = id;
   document.getElementById('leadModalTitle').textContent = 'Edit Lead';
@@ -4187,6 +4318,9 @@ function showEditLeadModal(id) {
   populatePrioritySelect(lead.priority);
   document.getElementById('leadNotes').value = lead.notes || '';
   document.getElementById('duplicateWarning').classList.add('hidden');
+  
+  APP.currentLeadAttachments = lead.attachments ? [...lead.attachments] : [];
+  renderAttachmentList();
   
   const deleteBtn = document.getElementById('leadDeleteBtn');
   if (APP.currentRole !== 'agent') {
@@ -4696,6 +4830,132 @@ async function deleteTeam(id) {
   });
 }
 
+async function handleFileSelect(e) {
+  const files = Array.from(e.target.files);
+  const pdfs = files.filter(f => f.type === 'application/pdf');
+  
+  if (pdfs.length === 0) {
+    if (files.length > 0) toast('Only PDF files are allowed', 'error');
+    return;
+  }
+
+  if (APP.currentLeadAttachments.length + pdfs.length > 2) {
+    toast('Maximum 2 attachments allowed per lead', 'error');
+    return;
+  }
+
+  for (const file of pdfs) {
+    if (file.size > 1024 * 1024) {
+      toast(`${file.name} is too large. Max 1MB allowed.`, 'error');
+      continue;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      APP.currentLeadAttachments.push({
+        name: file.name,
+        data: event.target.result,
+        contentType: file.type,
+        uploaded_at: new Date()
+      });
+      renderAttachmentList();
+    };
+    reader.readAsDataURL(file);
+  }
+  
+  e.target.value = ''; // Reset input
+}
+
+function renderAttachmentList() {
+  const list = document.getElementById('attachmentList');
+  if (!list) return;
+  
+  if (APP.currentLeadAttachments.length === 0) {
+    list.innerHTML = '';
+    return;
+  }
+
+  list.innerHTML = APP.currentLeadAttachments.map((att, idx) => `
+    <div class="flex items-center justify-between bg-surface-800/30 p-2 rounded-lg border border-surface-700/50">
+      <div class="flex items-center gap-2 overflow-hidden">
+        <i class="fas fa-file-pdf text-rose-500"></i>
+        <span class="text-xs text-white truncate max-w-[120px]">${att.name}</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button type="button" class="text-brand-400 hover:text-brand-300 p-1 text-xs" onclick="viewAttachment('current', null, ${idx})">View</button>
+        <button type="button" class="text-rose-400 hover:text-rose-300 p-1" onclick="removeAttachment(${idx})">
+          <i class="fas fa-trash-alt text-xs"></i>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeAttachment(idx) {
+  APP.currentLeadAttachments.splice(idx, 1);
+  renderAttachmentList();
+}
+
+function viewAttachment(source, leadId, idx) {
+  let att;
+  if (source === 'current') {
+    att = APP.currentLeadAttachments[idx];
+  } else {
+    const lead = leads.find(l => l.id === leadId || l._id === leadId);
+    if (lead && lead.attachments) att = lead.attachments[idx];
+  }
+  
+  if (!att) return;
+  
+  try {
+    const base64Data = att.data.split(',')[1];
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+    const fileURL = URL.createObjectURL(blob);
+    
+    const win = window.open(fileURL, '_blank');
+    if (!win) {
+      // If window.open was blocked, try creating a download link
+      const link = document.createElement('a');
+      link.href = fileURL;
+      link.download = att.name;
+      link.click();
+      toast('Pop-up blocked. Document downloaded instead.', 'info');
+    }
+  } catch (err) {
+    console.error('Error viewing PDF:', err);
+    toast('Error opening PDF document.', 'error');
+  }
+}
+
+function showLeadAttachmentsModal(leadId) {
+  const lead = leads.find(l => l.id === leadId || l._id === leadId);
+  if (!lead || !lead.attachments) return;
+
+  const list = document.getElementById('leadAttachmentsList');
+  list.innerHTML = lead.attachments.map((att, idx) => `
+    <div class="flex items-center justify-between bg-surface-800/50 p-3 rounded-xl border border-surface-700">
+      <div class="flex items-center gap-3 overflow-hidden">
+        <div class="w-8 h-8 rounded bg-rose-500/10 flex items-center justify-center shrink-0">
+          <i class="fas fa-file-pdf text-rose-500"></i>
+        </div>
+        <div class="overflow-hidden">
+          <p class="text-sm font-medium text-white truncate" title="${att.name}">${att.name}</p>
+          <p class="text-[10px] text-surface-500">${formatDate(att.uploaded_at)}</p>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm px-4" onclick="viewAttachment('lead', '${leadId}', ${idx})">View</button>
+    </div>
+  `).join('');
+
+  openModal('leadAttachmentsModal');
+}
+
 async function handleLeadSubmit(e) {
   e.preventDefault();
   const editId = document.getElementById('leadEditId').value;
@@ -4722,7 +4982,8 @@ async function handleLeadSubmit(e) {
       loan_type: loanType,
       amount_requested: amount,
       source, status, priority, notes,
-      assigned_agent_id: agentId || null
+      assigned_agent_id: agentId || null,
+      attachments: APP.currentLeadAttachments
     };
 
     let result;
@@ -4901,6 +5162,23 @@ async function showLeadDetail(id) {
 
 
         ${lead.notes ? `<div class="mb-6"><p class="text-xs text-surface-500 mb-1">Notes</p><p class="text-sm text-surface-300">${lead.notes}</p></div>` : ''}
+
+        ${lead.attachments && lead.attachments.length > 0 ? `
+          <div class="mb-6">
+            <p class="text-xs text-surface-500 mb-1">Attachments</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              ${lead.attachments.map((att, idx) => `
+                <div class="flex items-center justify-between bg-surface-800/50 p-2 rounded-lg border border-surface-700">
+                  <div class="flex items-center gap-2 overflow-hidden">
+                    <i class="fas fa-file-pdf text-rose-500"></i>
+                    <span class="text-xs text-white truncate">${att.name}</span>
+                  </div>
+                  <button class="text-brand-400 hover:text-brand-300 text-xs font-medium shrink-0" onclick="viewAttachment('lead', '${lead.id || lead._id}', ${idx})">View</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
 
         <!-- Call history -->
         <div>

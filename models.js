@@ -35,6 +35,12 @@ const leadSchema = new mongoose.Schema({
   assigned_agent_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   assigned_at: { type: Date },
   notes: { type: String },
+  attachments: [{
+    name: String,
+    data: String,
+    contentType: String,
+    uploaded_at: { type: Date, default: Date.now }
+  }],
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });
