@@ -2440,7 +2440,6 @@ function renderDashboard(allLeads) {
         </div>
         <div class="flex items-center gap-3">
           ${renderAssignmentFilter()}
-          ${APP.currentRole === 'admin' ? '<button class="btn !bg-[#4285F4] !text-white hover:!bg-[#3367d6] hover:shadow-lg hover:shadow-[#4285F4]/20 border-none transition-all rounded-md font-semibold px-4 py-2 text-xs flex items-center gap-2" onclick="openModal(\'importModal\')"><i class="fas fa-file-import"></i> Bulk Import</button>' : ''}
         </div>
       </div>
 
@@ -3078,8 +3077,8 @@ function handleLeadsSearch(val) {
 
 function renderMultiSelect(key, label, options = []) {
   const selected = leadsFilter[key] || [];
-  let labelText = selected.length === 0 ? (label === 'Status' ? 'All Status' : label === 'Aging' ? 'All Aging' : `All ${label}s`) : selected.length === 1 ? options.find(o => o.value === selected[0])?.label : `${selected.length} ${label}s`;
-  if (!labelText) labelText = `All ${label}s`;
+  let labelText = selected.length === 0 ? (label === 'Status' ? 'All Status' : label === 'Aging' ? 'All Aging' : label === 'City' ? 'All Cities' : `All ${label}s`) : selected.length === 1 ? options.find(o => o.value === selected[0])?.label : `${selected.length} ${label}s`;
+  if (!labelText) labelText = label === 'City' ? 'All Cities' : `All ${label}s`;
   
   return `
     <div class="relative group">
