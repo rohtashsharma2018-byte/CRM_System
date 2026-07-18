@@ -8,16 +8,14 @@ import { User, Lead, Team, Setting, CallLog, EmailTemplate, EmailLog } from './m
 import bcrypt from 'bcryptjs';
 import { Resend } from 'resend';
 import crypto from 'crypto';
+import fs from 'fs';
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.warn('WARNING: JWT_SECRET environment variable is not set! Generating a cryptographically secure random secret as fallback.');
-  return crypto.randomBytes(64).toString('hex');
-})();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const JWT_SECRET = process.env.JWT_SECRET || 'paisaneed-crm-jwt-secret-key-production-fallback-2026';
 
 const app = express();
 const PORT = 3000;
