@@ -20,6 +20,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'paisaneed-crm-jwt-secret-key-produ
 const app = express();
 const PORT = 3000;
 
+app.use((req, res, next) => {
+  console.log(`[REQ] ${req.method} ${req.url}`);
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 

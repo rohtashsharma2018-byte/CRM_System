@@ -1538,9 +1538,9 @@ async function initApp() {
       leadStatusesData, leadStatusLabelsData, leadPrioritiesData, leadPriorityLabelsData,
       defaultLeadAssignmentData, leadsPerPageData, targetsData, leadCategoriesData, leadCategoryLabelsData
     ] = await Promise.all([
-      fetchAPI(buildLeadsUrl()).catch(err => { console.error('Leads fetch error:', err); return { leads: [], total: 0 }; }),
-      fetchAPI('/users').catch(err => { console.error('Users fetch error:', err); return []; }),
-      fetchAPI('/teams').catch(err => { console.error('Teams fetch error:', err); return []; }),
+      fetchAPI(buildLeadsUrl()).catch(err => { if (err.message !== 'Unauthorized') console.error('Leads fetch error:', err); return { leads: [], total: 0 }; }),
+      fetchAPI('/users').catch(err => { if (err.message !== 'Unauthorized') console.error('Users fetch error:', err); return []; }),
+      fetchAPI('/teams').catch(err => { if (err.message !== 'Unauthorized') console.error('Teams fetch error:', err); return []; }),
       fetchAPI('/email-templates').catch(() => []),
       fetchAPI('/settings/loan_types').catch(() => []),
       fetchAPI('/settings/sources').catch(() => []),
@@ -1609,7 +1609,9 @@ async function initApp() {
     updateUserUI();
     navigateTo('dashboard');
   } catch (err) {
-    console.error('App init error:', err);
+    if (err.message !== 'Unauthorized' && err.message !== 'Session expired' && err.message !== 'Invalid token') {
+      console.error('App init error:', err);
+    }
     let errorMsg = err.message;
     if (err.message === 'Failed to fetch') {
       errorMsg = 'Could not connect to the server. Please check if the backend is running.';
@@ -2114,7 +2116,7 @@ async function renderPage() {
         c.innerHTML = renderDashboard(allLeads);
         initDashboardCharts(allLeads);
     } catch(e) {
-        console.error(e);
+        if (e.message !== 'Unauthorized') console.error(e);
         c.innerHTML = '<div class="text-white">Error loading dashboard</div>';
     }
     return;
