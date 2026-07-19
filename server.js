@@ -82,110 +82,19 @@ const seedDatabase = async () => {
       await Setting.findOneAndUpdate({ key: 'company_profile' }, { value: { name: 'CRM System', contact_person: 'Admin', email: 'support@paisaneed.com', mobile: '+91 9876543210', address: '123, Financial District, Mumbai, India', website: 'www.paisaneed.com', other: '' } }, { upsert: true });
     }
 
-    const indiaCitiesList = [
-      'mumbai', 'delhi', 'bangalore', 'hyderabad', 'chennai', 'pune', 'kolkata', 'ahmedabad', 'jaipur', 'lucknow',
-      'surat', 'kanpur', 'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 'patna', 'vadodara', 'ghaziabad',
-      'ludhiana', 'agra', 'nashik', 'faridabad', 'meerut', 'rajkot', 'varanasi', 'srinagar', 'aurangabad', 'dhanbad',
-      'amritsar', 'navi_mumbai', 'prayagraj', 'howrah', 'ranchi', 'gwalior', 'jabalpur', 'coimbatore', 'vijayawada',
-      'jodhpur', 'madurai', 'raipur', 'kota', 'guwahati', 'chandigarh', 'solapur', 'hubli_dharwad', 'bareilly',
-      'moradabad', 'mysore', 'gurugram', 'aligarh', 'jalandhar', 'tiruchirappalli', 'bhubaneswar', 'salem', 'warangal',
-      'guntur', 'gorakhpur', 'bikaner', 'amravati', 'noida', 'jamshedpur', 'bhilai', 'cuttack', 'firozabad',
-      'kochi', 'nellore', 'bhavnagar', 'dehradun', 'durgapur', 'asansol', 'rourkela', 'nanded', 'kolhapur', 'ajmer',
-      'akola', 'gulbarga', 'jamnagar', 'ujjain', 'loni', 'jhansi', 'puducherry', 'jammu', 'belagavi', 'mangaluru',
-      'tirunelveli', 'malegaon', 'gaya', 'jalgaon', 'udaipur', 'maheshtala', 'davangere', 'kozhikode', 'kurnool',
-      'rajamahendravaram', 'bokaro', 'south_dumdum', 'bellary', 'patiala', 'gopalpur', 'agartala', 'bhagalpur',
-      'muzaffarnagar', 'bhatpara', 'panihati', 'latur', 'dhule', 'rohtak', 'sagar', 'korba', 'bhilwara', 'firozpur',
-      'bilaspur', 'shahjahanpur', 'bihar_sharif', 'kollam', 'hazaribagh', 'darbhanga', 'haldia', 'haridwar',
-      'shimla', 'gangtok', 'panaji', 'shillong', 'aizawl', 'imphal', 'kohima', 'itanagar', 'diu', 'kavaratti', 'port_blair',
-      'sonipat', 'panipat', 'karnal', 'ambala', 'yamunanagar', 'kurukshetra', 'hisar', 'panchkula', 'mohali', 'bathinda',
-      'pathankot', 'hoshiarpur', 'moga', 'abohar', 'sri_ganganagar', 'hanumangarh', 'mathura', 'alwar', 'bharatpur',
-      'sikar', 'pali', 'jaisalmer', 'barmer', 'chittorgarh', 'udupi', 'tumakuru', 'shivamogga', 'kolar', 'mandya',
-      'hassan', 'chikmagalur', 'dharwad', 'vijayapura', 'kalaburagi', 'bidar', 'raichur', 'koppal', 'gadag', 'haveri',
-      'uttara_kannada', 'dakshina_kannada', 'kodagu', 'chamarajanagar', 'thrissur', 'palakkad', 'malappuram', 'kannur',
-      'kasaragod', 'wayanad', 'idukki', 'kottayam', 'alappuzha', 'pathanamthitta', 'tirupati', 'anantapur', 'kadapa',
-      'kakinada', 'eluru', 'ongole', 'vizianagaram', 'srikakulam', 'machilipatnam', 'khammam', 'karimnagar', 'ramagundam',
-      'secunderabad', 'siliguri', 'darjeeling', 'jalpaiguri', 'cooch_behar', 'malda', 'murshidabad', 'nadia', 'purulia',
-      'bankura', 'midnapore', 'kharagpur', 'barasat', 'barrackpore', 'serampore', 'digha', 'purba_medinipur', 'paschim_medinipur',
-      'jhargram', 'kalimpong', 'alipurduar', 'dinajpur', 'balurghat', 'raiganj', 'krishnanagar', 'ranaghat', 'kalyani',
-      'shantipur', 'nabadwip', 'berhampore'
-    ];
-
-    const indiaCityLabelsMap = {
-      mumbai: 'Mumbai', delhi: 'Delhi', bangalore: 'Bangalore', hyderabad: 'Hyderabad', chennai: 'Chennai',
-      pune: 'Pune', kolkata: 'Kolkata', ahmedabad: 'Ahmedabad', jaipur: 'Jaipur', lucknow: 'Lucknow',
-      surat: 'Surat', kanpur: 'Kanpur', nagpur: 'Nagpur', indore: 'Indore', thane: 'Thane', bhopal: 'Bhopal',
-      visakhapatnam: 'Visakhapatnam', patna: 'Patna', vadodara: 'Vadodara', ghaziabad: 'Ghaziabad',
-      ludhiana: 'Ludhiana', agra: 'Agra', nashik: 'Nashik', faridabad: 'Faridabad', meerut: 'Meerut',
-      rajkot: 'Rajkot', varanasi: 'Varanasi', srinagar: 'Srinagar', aurangabad: 'Aurangabad', dhanbad: 'Dhanbad',
-      amritsar: 'Amritsar', navi_mumbai: 'Navi Mumbai', prayagraj: 'Prayagraj', howrah: 'Howrah',
-      ranchi: 'Ranchi', gwalior: 'Gwalior', jabalpur: 'Jabalpur', coimbatore: 'Coimbatore', vijayawada: 'Vijayawada',
-      jodhpur: 'Jodhpur', madurai: 'Madurai', raipur: 'Raipur', kota: 'Kota', guwahati: 'Guwahati',
-      chandigarh: 'Chandigarh', solapur: 'Solapur', hubli_dharwad: 'Hubli-Dharwad', bareilly: 'Bareilly',
-      moradabad: 'Moradabad', mysore: 'Mysore', gurugram: 'Gurugram', aligarh: 'Aligarh', jalandhar: 'Jalandhar',
-      tiruchirappalli: 'Tiruchirappalli', bhubaneswar: 'Bhubaneswar', salem: 'Salem', warangal: 'Warangal',
-      guntur: 'Guntur', gorakhpur: 'Gorakhpur', bikaner: 'Bikaner', amravati: 'Amravati', noida: 'Noida',
-      jamshedpur: 'Jamshedpur', bhilai: 'Bhilai', cuttack: 'Cuttack', firozabad: 'Firozabad', kochi: 'Kochi',
-      nellore: 'Nellore', bhavnagar: 'Bhavnagar', dehradun: 'Dehradun', durgapur: 'Durgapur', asansol: 'Asansol',
-      rourkela: 'Rourkela', nanded: 'Nanded', kolhapur: 'Kolhapur', ajmer: 'Ajmer', akola: 'Akola',
-      gulbarga: 'Gulbarga', jamnagar: 'Jamnagar', ujjain: 'Ujjain', loni: 'Loni', jhansi: 'Jhansi',
-      puducherry: 'Puducherry', jammu: 'Jammu', belagavi: 'Belagavi', mangaluru: 'Mangaluru', tirunelveli: 'Tirunelveli',
-      malegaon: 'Malegaon', gaya: 'Gaya', jalgaon: 'Jalgaon', udaipur: 'Udaipur', maheshtala: 'Maheshtala',
-      davangere: 'Davangere', kozhikode: 'Kozhikode', kurnool: 'Kurnool', rajamahendravaram: 'Rajamahendravaram',
-      bokaro: 'Bokaro Steel City', south_dumdum: 'South Dumdum', bellary: 'Ballari', patiala: 'Patiala',
-      gopalpur: 'Gopalpur', agartala: 'Agartala', bhagalpur: 'Bhagalpur', muzaffarnagar: 'Muzaffarnagar',
-      bhatpara: 'Bhatpara', panihati: 'Panihati', latur: 'Latur', dhule: 'Dhule', rohtak: 'Rohtak',
-      sagar: 'Sagar', korba: 'Korba', bhilwara: 'Bhilwara', firozpur: 'Firozpur', bilaspur: 'Bilaspur',
-      shahjahanpur: 'Shahjahanpur', bihar_sharif: 'Bihar Sharif', kollam: 'Kollam', hazaribagh: 'Hazaribagh',
-      darbhanga: 'Darbhanga', haldia: 'Haldia', haridwar: 'Haridwar', shimla: 'Shimla', gangtok: 'Gangtok',
-      panaji: 'Panaji', shillong: 'Shillong', aizawl: 'Aizawl', imphal: 'Imphal', kohima: 'Kohima',
-      itanagar: 'Itanagar', diu: 'Diu', kavaratti: 'Kavaratti', port_blair: 'Port Blair', sonipat: 'Sonipat',
-      panipat: 'Panipat', karnal: 'Karnal', ambala: 'Ambala', yamunanagar: 'Yamunanagar', kurukshetra: 'Kurukshetra',
-      hisar: 'Hisar', panchkula: 'Panchkula', mohali: 'Mohali', bathinda: 'Bathinda', pathankot: 'Pathankot',
-      hoshiarpur: 'Hoshiarpur', moga: 'Moga', abohar: 'Abohar', sri_ganganagar: 'Sri Ganganagar', hanumangarh: 'Hanumangarh',
-      mathura: 'Mathura', alwar: 'Alwar', bharatpur: 'Bharatpur', sikar: 'Sikar', pali: 'Pali',
-      jaisalmer: 'Jaisalmer', barmer: 'Barmer', chittorgarh: 'Chittorgarh', udupi: 'Udupi', tumakuru: 'Tumakuru',
-      shivamogga: 'Shivamogga', kolar: 'Kolar', mandya: 'Mandya', hassan: 'Hassan', chikmagalur: 'Chikmagalur',
-      dharwad: 'Dharwad', vijayapura: 'Vijayapura', kalaburagi: 'Kalaburagi', bidar: 'Bidar', raichur: 'Raichur',
-      koppal: 'Koppal', gadag: 'Gadag', haveri: 'Haveri', uttara_kannada: 'Uttara Kannada', dakshina_kannada: 'Dakshina Kannada',
-      kodagu: 'Kodagu', chamarajanagar: 'Chamarajanagar', thrissur: 'Thrissur', palakkad: 'Palakkad', malappuram: 'Malappuram',
-      kannur: 'Kannur', kasaragod: 'Kasaragod', wayanad: 'Wayanad', idukki: 'Idukki', kottayam: 'Kottayam',
-      alappuzha: 'Alappuzha', pathanamthitta: 'Pathanamthitta', tirupati: 'Tirupati', anantapur: 'Anantapur',
-      kadapa: 'Kadapa', kakinada: 'Kakinada', eluru: 'Eluru', ongole: 'Ongole', vizianagaram: 'Vizianagaram',
-      srikakulam: 'Srikakulam', machilipatnam: 'Machilipatnam', khammam: 'Khammam', karimnagar: 'Karimnagar',
-      ramagundam: 'Ramagundam', secunderabad: 'Secunderabad', siliguri: 'Siliguri', darjeeling: 'Darjeeling',
-      jalpaiguri: 'Jalpaiguri', cooch_behar: 'Cooch Behar', malda: 'Malda', murshidabad: 'Murshidabad',
-      nadia: 'Nadia', purulia: 'Purulia', bankura: 'Bankura', midnapore: 'Midnapore', kharagpur: 'Kharagpur',
-      barasat: 'Barasat', barrackpore: 'Barrackpore', serampore: 'Serampore', digha: 'Digha', purba_medinipur: 'Purba Medinipur',
-      paschim_medinipur: 'Paschim Medinipur', jhargram: 'Jhargram', kalimpong: 'Kalimpong', alipurduar: 'Alipurduar',
-      dinajpur: 'Dinajpur', balurghat: 'Balurghat', raiganj: 'Raiganj', krishnanagar: 'Krishnanagar',
-      ranaghat: 'Ranaghat', kalyani: 'Kalyani', shantipur: 'Shantipur', nabadwip: 'Nabadwip', berhampore: 'Berhampore'
-    };
-
     // Always ensure lead statuses and priorities settings exist
     const settingsToSeed = [
       { key: 'lead_statuses', value: ['new', 'contacted', 'interested', 'documents_pending', 'login_done', 'disbursed', 'rejected', 'not_interested', 'dead'] },
       { key: 'lead_status_labels', value: { new: 'New', contacted: 'Contacted', interested: 'Interested', documents_pending: 'Docs Pending', login_done: 'Login Done', disbursed: 'Disbursed', rejected: 'Rejected', not_interested: 'Not Interested', dead: 'Dead' } },
       { key: 'lead_priorities', value: ['cold', 'warm', 'hot'] },
       { key: 'lead_priority_labels', value: { cold: 'Cold', warm: 'Warm', hot: 'Hot' } },
-      { key: 'targets', value: { monthly_leads: 100, monthly_disbursement: 1000000 } },
-      { key: 'cities', value: indiaCitiesList },
-      { key: 'city_labels', value: indiaCityLabelsMap }
+      { key: 'targets', value: { monthly_leads: 100, monthly_disbursement: 1000000 } }
     ];
 
     for (const setting of settingsToSeed) {
       const exists = await Setting.findOne({ key: setting.key });
       if (!exists) {
         await Setting.create(setting);
-      } else if (setting.key === 'cities' && Array.isArray(exists.value) && exists.value.length < 20) {
-        // Upgrade older minimal lists of cities
-        exists.value = setting.value;
-        await exists.save();
-        console.log('Upgraded seed cities list in DB with comprehensive India cities.');
-      } else if (setting.key === 'city_labels' && exists.value && Object.keys(exists.value).length < 20) {
-        // Upgrade older minimal list of city labels
-        exists.value = setting.value;
-        await exists.save();
-        console.log('Upgraded seed city labels list in DB.');
       }
     }
   } catch (err) {
@@ -284,7 +193,7 @@ function generateLeadUID() {
 
 app.get('/api/leads', authenticate, async (req, res) => {
   try {
-    const { page = 1, limit = 50, sort = 'created_at', dir = 'desc', search = '', status, loanType, source, agent, aging, assignment, city, dateRange, startDate, endDate } = req.query;
+    const { page = 1, limit = 50, sort = 'created_at', dir = 'desc', search = '', status, loanType, source, agent, aging, assignment, dateRange, startDate, endDate } = req.query;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
 
@@ -354,7 +263,6 @@ app.get('/api/leads', authenticate, async (req, res) => {
     if (status) conditions.push({ status: { $in: status.split(',') } });
     if (loanType) conditions.push({ loan_type: { $in: loanType.split(',') } });
     if (source) conditions.push({ source: { $in: source.split(',') } });
-    if (city) conditions.push({ city: { $in: city.split(',') } });
 
     // Global Date Filter on lead creation date
     if (dateRange && dateRange !== 'all_time') {
@@ -410,7 +318,7 @@ app.get('/api/leads', authenticate, async (req, res) => {
 
 app.get('/api/leads/all', authenticate, async (req, res) => {
   try {
-    const { dateRange, startDate, endDate, assignment, agent, status, loanType, source, city } = req.query;
+    const { dateRange, startDate, endDate, assignment, agent, status, loanType, source } = req.query;
     let query = {};
     const conditions = [];
 
@@ -467,7 +375,6 @@ app.get('/api/leads/all', authenticate, async (req, res) => {
     if (status) conditions.push({ status: { $in: status.split(',') } });
     if (loanType) conditions.push({ loan_type: { $in: loanType.split(',') } });
     if (source) conditions.push({ source: { $in: source.split(',') } });
-    if (city) conditions.push({ city: { $in: city.split(',') } });
 
     // Global Date Filter on lead creation date
     if (dateRange && dateRange !== 'all_time') {
@@ -609,7 +516,6 @@ app.post('/api/leads/import', authenticate, async (req, res) => {
           phone: leadData.phone || leadData.Phone,
           email: leadData.email || leadData.Email,
           address: leadData.address || leadData.Address || '',
-          city: (leadData.city || leadData.City || '').toString().toLowerCase().trim(),
           lead_category: leadData.category || leadData.leadcategory || leadData.Category || 'Individual',
           loan_type: leadData.producttype || leadData['product type'] || leadData['Product Type'] || leadData.loantype || leadData['loan type'] || leadData['Loan Type'] || 'personal_loan',
           amount_requested: parseInt((leadData.amount || leadData.Amount || '0').toString().replace(/[^0-9]/g, '')) || 0,

@@ -466,14 +466,9 @@ body.light-theme #loginOverlay > div {
         </div>
         <div>
           <label class="block text-sm font-medium text-surface-400 mb-1.5">Lead Address</label>
-          <input type="text" class="form-input" id="leadAddress" placeholder="123 Main St, City, State">
+          <input type="text" class="form-input" id="leadAddress" placeholder="123 Main St, State">
         </div>
-        <div>
-          <label class="block text-sm font-medium text-surface-400 mb-1.5">City</label>
-          <select class="form-input" id="leadCity">
-            <option value="">Select City...</option>
-          </select>
-        </div>
+
         <div>
           <label class="block text-sm font-medium text-surface-400 mb-1.5">Category *</label>
           <select class="form-input" id="leadCategory" required>
@@ -692,31 +687,6 @@ body.light-theme #loginOverlay > div {
   </div>
 </div>
 
-<!-- Add/Edit City Modal -->
-<div class="modal-overlay" id="addCityModal">
-  <div class="modal" style="max-width:400px">
-    <div class="p-6 border-b border-surface-800 flex items-center justify-between">
-      <h3 class="font-display font-bold text-lg text-white" id="cityModalTitle">Add City</h3>
-      <button class="btn-ghost rounded-lg" onclick="closeModal('addCityModal')"><i class="fas fa-times"></i></button>
-    </div>
-    <form id="cityForm" class="p-6 space-y-4" onsubmit="handleCitySubmit(event)">
-      <input type="hidden" id="cityEditKey">
-      <div>
-        <label class="block text-sm font-medium text-surface-400 mb-1.5">City Key *</label>
-        <input type="text" id="cityKey" class="form-input" required placeholder="mumbai" pattern="[a-z0-9_]+" title="Only lowercase letters, numbers, and underscores">
-        <p class="text-xs text-surface-500 mt-1">Used in code (e.g., mumbai). Cannot be changed later.</p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-surface-400 mb-1.5">City Display Name *</label>
-        <input type="text" id="cityName" class="form-input" required placeholder="Mumbai">
-      </div>
-      <div class="flex justify-end gap-3 pt-2">
-        <button type="button" class="btn btn-secondary" onclick="closeModal('addCityModal')">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="citySubmitBtn">Add City</button>
-      </div>
-    </form>
-  </div>
-</div>
 
 <!-- Add/Edit Lead Category Modal -->
 <div class="modal-overlay" id="addLeadCategoryModal">
@@ -917,7 +887,7 @@ body.light-theme #loginOverlay > div {
       <div id="csvDropZone" class="border-2 border-dashed border-surface-700 rounded-xl p-10 text-center hover:border-[#4285F4] hover:bg-[#4285F4]/5 transition-all duration-200 cursor-pointer" onclick="document.getElementById('csvInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleCSVDrop(event)">
         <i class="fas fa-cloud-upload-alt text-4xl text-surface-500 mb-3"></i>
         <p class="text-white font-medium">Drop CSV file here or click to browse</p>
-        <p class="text-surface-500 text-sm mt-1">Supports .csv files with columns: name, phone, email, address, city, category, product_type, amount, source, status, notes</p>
+        <p class="text-surface-500 text-sm mt-1">Supports .csv files with columns: name, phone, email, address, category, product_type, amount, source, status, notes</p>
       </div>
       <input type="file" id="csvInput" accept=".csv" class="hidden" onchange="handleCSVImport(event)">
       <div id="importPreview" class="mt-4 hidden">
@@ -1141,7 +1111,7 @@ const APP = {
   }
 };
 
-let leadsFilter = { status: [], city: [], loanType: [], source: [], agent: [], aging: [], assignment: APP.defaultLeadAssignment, search: '', sort: 'created_at', dir: 'desc', followUp: 'all', dateRange: 'all_time', startDate: '', endDate: '' };
+let leadsFilter = { status: [], loanType: [], source: [], agent: [], aging: [], assignment: APP.defaultLeadAssignment, search: '', sort: 'created_at', dir: 'desc', followUp: 'all', dateRange: 'all_time', startDate: '', endDate: '' };
 
 function setTheme(theme) {
   APP.theme = theme;
@@ -1193,85 +1163,8 @@ let SOURCES = [];
 let SOURCE_LABELS = {};
 let LEAD_CATEGORIES = ['individual', 'business'];
 let CATEGORY_LABELS = { individual: 'Individual', business: 'Business' };
-let CITIES = [
-  'mumbai', 'delhi', 'bangalore', 'hyderabad', 'chennai', 'pune', 'kolkata', 'ahmedabad', 'jaipur', 'lucknow',
-  'surat', 'kanpur', 'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 'patna', 'vadodara', 'ghaziabad',
-  'ludhiana', 'agra', 'nashik', 'faridabad', 'meerut', 'rajkot', 'varanasi', 'srinagar', 'aurangabad', 'dhanbad',
-  'amritsar', 'navi_mumbai', 'prayagraj', 'howrah', 'ranchi', 'gwalior', 'jabalpur', 'coimbatore', 'vijayawada',
-  'jodhpur', 'madurai', 'raipur', 'kota', 'guwahati', 'chandigarh', 'solapur', 'hubli_dharwad', 'bareilly',
-  'moradabad', 'mysore', 'gurugram', 'aligarh', 'jalandhar', 'tiruchirappalli', 'bhubaneswar', 'salem', 'warangal',
-  'guntur', 'gorakhpur', 'bikaner', 'amravati', 'noida', 'jamshedpur', 'bhilai', 'cuttack', 'firozabad',
-  'kochi', 'nellore', 'bhavnagar', 'dehradun', 'durgapur', 'asansol', 'rourkela', 'nanded', 'kolhapur', 'ajmer',
-  'akola', 'gulbarga', 'jamnagar', 'ujjain', 'loni', 'jhansi', 'puducherry', 'jammu', 'belagavi', 'mangaluru',
-  'tirunelveli', 'malegaon', 'gaya', 'jalgaon', 'udaipur', 'maheshtala', 'davangere', 'kozhikode', 'kurnool',
-  'rajamahendravaram', 'bokaro', 'south_dumdum', 'bellary', 'patiala', 'gopalpur', 'agartala', 'bhagalpur',
-  'muzaffarnagar', 'bhatpara', 'panihati', 'latur', 'dhule', 'rohtak', 'sagar', 'korba', 'bhilwara', 'firozpur',
-  'bilaspur', 'shahjahanpur', 'bihar_sharif', 'kollam', 'hazaribagh', 'darbhanga', 'haldia', 'haridwar',
-  'shimla', 'gangtok', 'panaji', 'shillong', 'aizawl', 'imphal', 'kohima', 'itanagar', 'diu', 'kavaratti', 'port_blair',
-  'sonipat', 'panipat', 'karnal', 'ambala', 'yamunanagar', 'kurukshetra', 'hisar', 'panchkula', 'mohali', 'bathinda',
-  'pathankot', 'hoshiarpur', 'moga', 'abohar', 'sri_ganganagar', 'hanumangarh', 'mathura', 'alwar', 'bharatpur',
-  'sikar', 'pali', 'jaisalmer', 'barmer', 'chittorgarh', 'udupi', 'tumakuru', 'shivamogga', 'kolar', 'mandya',
-  'hassan', 'chikmagalur', 'dharwad', 'vijayapura', 'kalaburagi', 'bidar', 'raichur', 'koppal', 'gadag', 'haveri',
-  'uttara_kannada', 'dakshina_kannada', 'kodagu', 'chamarajanagar', 'thrissur', 'palakkad', 'malappuram', 'kannur',
-  'kasaragod', 'wayanad', 'idukki', 'kottayam', 'alappuzha', 'pathanamthitta', 'tirupati', 'anantapur', 'kadapa',
-  'kakinada', 'eluru', 'ongole', 'vizianagaram', 'srikakulam', 'machilipatnam', 'khammam', 'karimnagar', 'ramagundam',
-  'secunderabad', 'siliguri', 'darjeeling', 'jalpaiguri', 'cooch_behar', 'malda', 'murshidabad', 'nadia', 'purulia',
-  'bankura', 'midnapore', 'kharagpur', 'barasat', 'barrackpore', 'serampore', 'digha', 'purba_medinipur', 'paschim_medinipur',
-  'jhargram', 'kalimpong', 'alipurduar', 'dinajpur', 'balurghat', 'raiganj', 'krishnanagar', 'ranaghat', 'kalyani',
-  'shantipur', 'nabadwip', 'berhampore'
-];
-let CITY_LABELS = {
-  mumbai: 'Mumbai', delhi: 'Delhi', bangalore: 'Bangalore', hyderabad: 'Hyderabad', chennai: 'Chennai',
-  pune: 'Pune', kolkata: 'Kolkata', ahmedabad: 'Ahmedabad', jaipur: 'Jaipur', lucknow: 'Lucknow',
-  surat: 'Surat', kanpur: 'Kanpur', nagpur: 'Nagpur', indore: 'Indore', thane: 'Thane', bhopal: 'Bhopal',
-  visakhapatnam: 'Visakhapatnam', patna: 'Patna', vadodara: 'Vadodara', ghaziabad: 'Ghaziabad',
-  ludhiana: 'Ludhiana', agra: 'Agra', nashik: 'Nashik', faridabad: 'Faridabad', meerut: 'Meerut',
-  rajkot: 'Rajkot', varanasi: 'Varanasi', srinagar: 'Srinagar', aurangabad: 'Aurangabad', dhanbad: 'Dhanbad',
-  amritsar: 'Amritsar', navi_mumbai: 'Navi Mumbai', prayagraj: 'Prayagraj', howrah: 'Howrah',
-  ranchi: 'Ranchi', gwalior: 'Gwalior', jabalpur: 'Jabalpur', coimbatore: 'Coimbatore', vijayawada: 'Vijayawada',
-  jodhpur: 'Jodhpur', madurai: 'Madurai', raipur: 'Raipur', kota: 'Kota', guwahati: 'Guwahati',
-  chandigarh: 'Chandigarh', solapur: 'Solapur', hubli_dharwad: 'Hubli-Dharwad', bareilly: 'Bareilly',
-  moradabad: 'Moradabad', mysore: 'Mysore', gurugram: 'Gurugram', aligarh: 'Aligarh', jalandhar: 'Jalandhar',
-  tiruchirappalli: 'Tiruchirappalli', bhubaneswar: 'Bhubaneswar', salem: 'Salem', warangal: 'Warangal',
-  guntur: 'Guntur', gorakhpur: 'Gorakhpur', bikaner: 'Bikaner', amravati: 'Amravati', noida: 'Noida',
-  jamshedpur: 'Jamshedpur', bhilai: 'Bhilai', cuttack: 'Cuttack', firozabad: 'Firozabad', kochi: 'Kochi',
-  nellore: 'Nellore', bhavnagar: 'Bhavnagar', dehradun: 'Dehradun', durgapur: 'Durgapur', asansol: 'Asansol',
-  rourkela: 'Rourkela', nanded: 'Nanded', kolhapur: 'Kolhapur', ajmer: 'Ajmer', akola: 'Akola',
-  gulbarga: 'Gulbarga', jamnagar: 'Jamnagar', ujjain: 'Ujjain', loni: 'Loni', jhansi: 'Jhansi',
-  puducherry: 'Puducherry', jammu: 'Jammu', belagavi: 'Belagavi', mangaluru: 'Mangaluru', tirunelveli: 'Tirunelveli',
-  malegaon: 'Malegaon', gaya: 'Gaya', jalgaon: 'Jalgaon', udaipur: 'Udaipur', maheshtala: 'Maheshtala',
-  davangere: 'Davangere', kozhikode: 'Kozhikode', kurnool: 'Kurnool', rajamahendravaram: 'Rajamahendravaram',
-  bokaro: 'Bokaro Steel City', south_dumdum: 'South Dumdum', bellary: 'Ballari', patiala: 'Patiala',
-  gopalpur: 'Gopalpur', agartala: 'Agartala', bhagalpur: 'Bhagalpur', muzaffarnagar: 'Muzaffarnagar',
-  bhatpara: 'Bhatpara', panihati: 'Panihati', latur: 'Latur', dhule: 'Dhule', rohtak: 'Rohtak',
-  sagar: 'Sagar', korba: 'Korba', bhilwara: 'Bhilwara', firozpur: 'Firozpur', bilaspur: 'Bilaspur',
-  shahjahanpur: 'Shahjahanpur', bihar_sharif: 'Bihar Sharif', kollam: 'Kollam', hazaribagh: 'Hazaribagh',
-  darbhanga: 'Darbhanga', haldia: 'Haldia', haridwar: 'Haridwar', shimla: 'Shimla', gangtok: 'Gangtok',
-  panaji: 'Panaji', shillong: 'Shillong', aizawl: 'Aizawl', imphal: 'Imphal', kohima: 'Kohima',
-  itanagar: 'Itanagar', diu: 'Diu', kavaratti: 'Kavaratti', port_blair: 'Port Blair', sonipat: 'Sonipat',
-  panipat: 'Panipat', karnal: 'Karnal', ambala: 'Ambala', yamunanagar: 'Yamunanagar', kurukshetra: 'Kurukshetra',
-  hisar: 'Hisar', panchkula: 'Panchkula', mohali: 'Mohali', bathinda: 'Bathinda', pathankot: 'Pathankot',
-  hoshiarpur: 'Hoshiarpur', moga: 'Moga', abohar: 'Abohar', sri_ganganagar: 'Sri Ganganagar', hanumangarh: 'Hanumangarh',
-  mathura: 'Mathura', alwar: 'Alwar', bharatpur: 'Bharatpur', sikar: 'Sikar', pali: 'Pali',
-  jaisalmer: 'Jaisalmer', barmer: 'Barmer', chittorgarh: 'Chittorgarh', udupi: 'Udupi', tumakuru: 'Tumakuru',
-  shivamogga: 'Shivamogga', kolar: 'Kolar', mandya: 'Mandya', hassan: 'Hassan', chikmagalur: 'Chikmagalur',
-  dharwad: 'Dharwad', vijayapura: 'Vijayapura', kalaburagi: 'Kalaburagi', bidar: 'Bidar', raichur: 'Raichur',
-  koppal: 'Koppal', gadag: 'Gadag', haveri: 'Haveri', ...{
-    uttara_kannada: 'Uttara Kannada', dakshina_kannada: 'Dakshina Kannada', kodagu: 'Kodagu', chamarajanagar: 'Chamarajanagar',
-    thrissur: 'Thrissur', palakkad: 'Palakkad', malappuram: 'Malappuram', kannur: 'Kannur', kasaragod: 'Kasaragod',
-    wayanad: 'Wayanad', idukki: 'Idukki', kottayam: 'Kottayam', alappuzha: 'Alappuzha', pathanamthitta: 'Pathanamthitta',
-    tirupati: 'Tirupati', anantapur: 'Anantapur', kadapa: 'Kadapa', kakinada: 'Kakinada', eluru: 'Eluru',
-    ongole: 'Ongole', vizianagaram: 'Vizianagaram', srikakulam: 'Srikakulam', machilipatnam: 'Machilipatnam',
-    khammam: 'Khammam', karimnagar: 'Karimnagar', ramagundam: 'Ramagundam', secunderabad: 'Secunderabad',
-    siliguri: 'Siliguri', darjeeling: 'Darjeeling', jalpaiguri: 'Jalpaiguri', cooch_behar: 'Cooch Behar',
-    malda: 'Malda', murshidabad: 'Murshidabad', nadia: 'Nadia', purulia: 'Purulia', bankura: 'Bankura',
-    midnapore: 'Midnapore', kharagpur: 'Kharagpur', barasat: 'Barasat', barrackpore: 'Barrackpore',
-    serampore: 'Serampore', digha: 'Digha', purba_medinipur: 'Purba Medinipur', paschim_medinipur: 'Paschim Medinipur',
-    jhargram: 'Jhargram', kalimpong: 'Kalimpong', alipurduar: 'Alipurduar', dinajpur: 'Dinajpur',
-    balurghat: 'Balurghat', raiganj: 'Raiganj', krishnanagar: 'Krishnanagar', ranaghat: 'Ranaghat',
-    kalyani: 'Kalyani', shantipur: 'Shantipur', nabadwip: 'Nabadwip', berhampore: 'Berhampore'
-  }
-};
+
+
 
 let leads = [];
 let selectedLeadIds = [];
@@ -1523,7 +1416,6 @@ function buildLeadsUrl() {
     dir: leadsFilter.dir,
     search: leadsFilter.search,
     status: leadsFilter.status.join(','),
-    city: (leadsFilter.city || []).join(','),
     loanType: leadsFilter.loanType.join(','),
     source: leadsFilter.source.join(','),
     agent: leadsFilter.agent.join(','),
@@ -1644,7 +1536,7 @@ async function initApp() {
       leadsData, usersData, teamsData, emailTemplatesData, loanTypesData, sourcesData, distRulesData,
       allocHistoryData, callsData, emailsData, loanLabelsData, companyProfileData,
       leadStatusesData, leadStatusLabelsData, leadPrioritiesData, leadPriorityLabelsData,
-      defaultLeadAssignmentData, leadsPerPageData, targetsData, leadCategoriesData, leadCategoryLabelsData, citiesData, cityLabelsData
+      defaultLeadAssignmentData, leadsPerPageData, targetsData, leadCategoriesData, leadCategoryLabelsData
     ] = await Promise.all([
       fetchAPI(buildLeadsUrl()).catch(err => { console.error('Leads fetch error:', err); return { leads: [], total: 0 }; }),
       fetchAPI('/users').catch(err => { console.error('Users fetch error:', err); return []; }),
@@ -1667,8 +1559,7 @@ async function initApp() {
       fetchAPI('/settings/targets').catch(() => ({})),
       fetchAPI('/settings/lead_categories').catch(() => []),
       fetchAPI('/settings/lead_category_labels').catch(() => ({})),
-      fetchAPI('/settings/cities').catch(() => []),
-      fetchAPI('/settings/city_labels').catch(() => ({}))
+
     ]);
     
     APP.defaultLeadAssignment = defaultLeadAssignmentData || 'all';
@@ -1713,12 +1604,6 @@ async function initApp() {
     }
     if (leadCategoryLabelsData && typeof leadCategoryLabelsData === 'object' && !Array.isArray(leadCategoryLabelsData)) {
       CATEGORY_LABELS = { ...CATEGORY_LABELS, ...leadCategoryLabelsData };
-    }
-    if (citiesData && citiesData.length > 0) {
-      CITIES = citiesData;
-    }
-    if (cityLabelsData && typeof cityLabelsData === 'object' && !Array.isArray(cityLabelsData)) {
-      CITY_LABELS = { ...CITY_LABELS, ...cityLabelsData };
     }
     
     updateUserUI();
@@ -2947,7 +2832,7 @@ function getFilteredLeads() {
 
   // Global Search
   if (APP.searchQuery) {
-    vl = vl.filter(l => l.name.toLowerCase().includes(APP.searchQuery) || l.phone.includes(APP.searchQuery) || l.city.toLowerCase().includes(APP.searchQuery) || l.email.toLowerCase().includes(APP.searchQuery));
+    vl = vl.filter(l => l.name.toLowerCase().includes(APP.searchQuery) || l.phone.includes(APP.searchQuery) || l.email.toLowerCase().includes(APP.searchQuery));
   }
 
   // Local Search
@@ -3067,7 +2952,7 @@ function renderLeads() {
           <input type="text" class="form-input py-2 text-sm w-64" placeholder="Search name or phone..." value="${leadsFilter.search}" oninput="handleLeadsSearch(this.value)">
           
           ${renderMultiSelect('status', 'Status', [...new Set(leads.map(l => l.status || 'new'))].map(s => ({ value: s, label: STATUS_LABELS[s] || s })))}
-          ${renderMultiSelect('city', 'City', [...new Set(leads.map(l => l.city || ''))].filter(c => c).map(s => ({ value: s, label: CITY_LABELS[s.toLowerCase()] || s })))}
+
           ${renderMultiSelect('loanType', 'Product Type', [...new Set(leads.map(l => l.loan_type || 'personal'))].map(s => ({ value: s, label: LOAN_LABELS[s] || s })))}
           ${renderMultiSelect('source', 'Source', [...new Set(leads.map(l => l.source || 'website'))].map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) })))}
           
@@ -3078,7 +2963,7 @@ function renderLeads() {
           
           ${renderMultiSelect('aging', 'Aging', uniqueAgingDays.map(d => ({ value: String(d), label: `${d} Days` })))}
           
-          <button class="btn btn-ghost text-sm text-surface-400 hover:text-white transition-colors" onclick="leadsFilter={status:[],city:[],loanType:[],source:[],agent:[],aging:[],assignment:'assigned',search:'',sort:'created_at',dir:'desc',followUp:'all',dateRange:'all_time',startDate:'',endDate:''};APP.currentPaginationPage=1;saveGlobalDateFilter().then(() => fetchLeads())">
+          <button class="btn btn-ghost text-sm text-surface-400 hover:text-white transition-colors" onclick="leadsFilter={status:[],loanType:[],source:[],agent:[],aging:[],assignment:'assigned',search:'',sort:'created_at',dir:'desc',followUp:'all',dateRange:'all_time',startDate:'',endDate:''};APP.currentPaginationPage=1;saveGlobalDateFilter().then(() => fetchLeads())">
             <i class="fas fa-times"></i> Clear Filter
           </button>
         </div>
@@ -3158,7 +3043,7 @@ function renderLeadRow(l, canManage) {
         <div>
           <p class="font-medium text-white">${l.name}</p>
           <p class="text-[10px] font-mono text-surface-400 mb-0.5">${l.lead_uid || ''}</p>
-          <p class="text-xs text-surface-500">${l.city}</p>
+
         </div>
       </div>
     </td>
@@ -3223,8 +3108,8 @@ function handleLeadsSearch(val) {
 
 function renderMultiSelect(key, label, options = []) {
   const selected = leadsFilter[key] || [];
-  let labelText = selected.length === 0 ? (label === 'Status' ? 'All Status' : label === 'Aging' ? 'All Aging' : label === 'City' ? 'All Cities' : `All ${label}s`) : selected.length === 1 ? options.find(o => o.value === selected[0])?.label : `${selected.length} ${label}s`;
-  if (!labelText) labelText = label === 'City' ? 'All Cities' : `All ${label}s`;
+  let labelText = selected.length === 0 ? `All ${label}s` : selected.length === 1 ? options.find(o => o.value === selected[0])?.label : `${selected.length} ${label}s`;
+  if (!labelText) labelText = `All ${label}s`;
   
   return `
     <div class="relative group">
@@ -3321,7 +3206,7 @@ function renderPipeline() {
                     </div>
                     <p class="text-xs text-surface-500 mb-2">${LOAN_LABELS[l.loan_type] || l.loan_type} — ${formatCurrency(l.amount_requested)}</p>
                     <div class="flex items-center justify-between">
-                      <p class="text-xs text-surface-400"><i class="fas fa-map-marker-alt mr-1"></i>${l.city}</p>
+                      <p class="text-xs text-surface-400"></p>
                       <p class="text-[11px] text-surface-500">${timeAgo(l.created_at)}</p>
                     </div>
                   </div>
@@ -3954,7 +3839,7 @@ function renderCallingQueue() {
                     <p class="font-semibold text-white">${l.name}</p>
                     ${l.priority === 'hot' ? '<span class="badge badge-hot">HOT</span>' : ''}
                   </div>
-                  <p class="text-sm text-surface-400 mt-0.5">${l.phone}${l.email ? ` — ${l.email}` : ''} — ${l.city}</p>
+                  <p class="text-sm text-surface-400 mt-0.5">${l.phone}${l.email ? ` — ${l.email}` : ''}</p>
                   <p class="text-xs text-surface-500 mt-0.5">${LOAN_LABELS[l.loan_type] || l.loan_type} — ${formatCurrency(l.amount_requested)} — ${lastCall ? 'Last call: ' + timeAgo(lastCall.created_at) : 'No calls yet'}</p>
                 </div>
               </div>
@@ -4553,25 +4438,6 @@ function renderSettings() {
               `).join('')}
             </div>
             <button class="btn btn-secondary btn-sm mt-3" onclick="showAddLeadCategoryModal()"><i class="fas fa-plus"></i> Add Lead Category</button>
-          </div>
-
-          <div class="card">
-            <h3 class="font-display font-semibold text-white mb-4">Cities</h3>
-            <div class="space-y-2 max-h-60 overflow-y-auto">
-              ${CITIES.map(c => `
-                <div class="flex items-center justify-between py-2 border-b border-surface-800 last:border-0">
-                  <div class="flex items-center gap-3">
-                    <i class="fas fa-grip-vertical text-surface-600"></i>
-                    <span class="text-white">${CITY_LABELS[c] || c} <span class="text-xs text-surface-500">(${c})</span></span>
-                  </div>
-                  <div class="flex gap-2">
-                    <button class="btn-ghost btn-sm text-xs" onclick="showEditCityModal('${c}')"><i class="fas fa-edit"></i></button>
-                    ${CITIES.length > 1 ? `<button class="btn-ghost btn-sm text-xs text-rose-400" onclick="deleteCity('${c}')"><i class="fas fa-trash"></i></button>` : ''}
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-            <button class="btn btn-secondary btn-sm mt-3" onclick="showAddCityModal()"><i class="fas fa-plus"></i> Add City</button>
           </div>
 
           <div class="card">
@@ -6118,18 +5984,6 @@ function populateCategorySelect(selectedId) {
   }
 }
 
-function populateCitySelect(selectedId) {
-  const sel = document.getElementById('leadCity');
-  if (sel) {
-    const uniqueCities = [...new Set(CITIES)];
-    const sortedCities = uniqueCities.sort((a, b) => {
-      const nameA = (CITY_LABELS[a] || a).toLowerCase();
-      const nameB = (CITY_LABELS[b] || b).toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
-    sel.innerHTML = '<option value="">Select City...</option>' + sortedCities.map(c => `<option value="${c}" ${c === selectedId ? 'selected' : ''}>${CITY_LABELS[c] || c}</option>`).join('');
-  }
-}
 
 function populateLoanTypeSelect(selectedId) {
   const sel = document.getElementById('leadLoanType');
@@ -6186,7 +6040,6 @@ function showAddLeadModal() {
   document.getElementById('leadSubmitBtn').textContent = 'Add Lead';
   document.getElementById('duplicateWarning').classList.add('hidden');
   document.getElementById('leadDeleteBtn').classList.add('hidden');
-  populateCitySelect();
   populateAgentSelect();
   populateCategorySelect();
   populateLoanTypeSelect();
@@ -6206,7 +6059,6 @@ function showEditLeadModal(id) {
   document.getElementById('leadPhone').value = lead.phone;
   document.getElementById('leadEmail').value = lead.email || '';
   document.getElementById('leadAddress').value = lead.address || '';
-  populateCitySelect(lead.city);
   populateCategorySelect(lead.lead_category);
   populateLoanTypeSelect(lead.loan_type);
   document.getElementById('leadAmount').value = lead.amount_requested;
@@ -6426,90 +6278,6 @@ async function deleteLeadStatus(key) {
   });
 }
 
-// --- City Modals and Actions ---
-function showAddCityModal() {
-  document.getElementById('cityEditKey').value = '';
-  document.getElementById('cityForm').reset();
-  document.getElementById('cityKey').disabled = false;
-  document.getElementById('cityModalTitle').textContent = 'Add City';
-  document.getElementById('citySubmitBtn').textContent = 'Add City';
-  openModal('addCityModal');
-}
-
-function showEditCityModal(key) {
-  const label = CITY_LABELS[key] || key;
-  document.getElementById('cityEditKey').value = key;
-  document.getElementById('cityKey').value = key;
-  document.getElementById('cityKey').disabled = true;
-  document.getElementById('cityName').value = label;
-  document.getElementById('cityModalTitle').textContent = 'Edit City';
-  document.getElementById('citySubmitBtn').textContent = 'Save Changes';
-  openModal('addCityModal');
-}
-
-async function handleCitySubmit(e) {
-  e.preventDefault();
-  const editKey = document.getElementById('cityEditKey').value;
-  let key = document.getElementById('cityKey').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-  const name = document.getElementById('cityName').value.trim();
-
-  if (!key || !name) {
-    toast('Key and Name are required', 'error');
-    return;
-  }
-
-  try {
-    if (editKey) {
-      CITY_LABELS[editKey] = name;
-    } else {
-      if (CITIES.includes(key)) {
-        toast('City key already exists', 'error');
-        return;
-      }
-      CITIES.push(key);
-      CITY_LABELS[key] = name;
-    }
-
-    await Promise.all([
-      fetchAPI('/settings/cities', { method: 'POST', body: JSON.stringify({ value: CITIES }) }),
-      fetchAPI('/settings/city_labels', { method: 'POST', body: JSON.stringify({ value: CITY_LABELS }) })
-    ]);
-    
-    toast(editKey ? 'City updated successfully' : 'City added successfully');
-    closeModal('addCityModal');
-    renderPage();
-  } catch (err) {
-    console.error('Error saving city:', err);
-    toast('Failed to save city', 'error');
-  }
-}
-
-function deleteCity(key) {
-  const leadUsing = leads.some(l => l.city && l.city.toLowerCase() === key);
-  if (leadUsing) {
-    toast('Cannot delete: City is currently assigned to one or more leads.', 'error');
-    return;
-  }
-
-  showConfirmModal('Delete City', `Are you sure you want to delete ${CITY_LABELS[key] || key}?`, async () => {
-    try {
-      const index = CITIES.indexOf(key);
-      if (index > -1) {
-        CITIES.splice(index, 1);
-        delete CITY_LABELS[key];
-        await Promise.all([
-          fetchAPI('/settings/cities', { method: 'POST', body: JSON.stringify({ value: CITIES }) }),
-          fetchAPI('/settings/city_labels', { method: 'POST', body: JSON.stringify({ value: CITY_LABELS }) })
-        ]);
-        toast('City deleted successfully');
-        renderPage();
-      }
-    } catch (err) {
-      console.error('Error deleting city:', err);
-      toast('Failed to delete city', 'error');
-    }
-  });
-}
 
 // --- Lead Category Modals and Actions ---
 function showAddLeadCategoryModal() {
@@ -7301,7 +7069,6 @@ async function handleLeadSubmit(e) {
   const phone = document.getElementById('leadPhone').value.trim();
   const email = document.getElementById('leadEmail').value.trim();
   const address = document.getElementById('leadAddress').value.trim();
-  const city = document.getElementById('leadCity').value.trim();
   const category = document.getElementById('leadCategory').value;
   const loanType = document.getElementById('leadLoanType').value;
   const amount = parseInt(document.getElementById('leadAmount').value);
@@ -7318,7 +7085,7 @@ async function handleLeadSubmit(e) {
 
   try {
     const payload = {
-      name, phone, email, address, city,
+      name, phone, email, address,
       lead_category: category,
       loan_type: loanType,
       amount_requested: amount,
@@ -7496,7 +7263,7 @@ async function showLeadDetail(id) {
               <h3 class="font-display font-bold text-lg text-white">${lead.name}</h3>
               ${lead.lead_uid ? `<span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-surface-400 border border-surface-700">${lead.lead_uid}</span>` : ''}
             </div>
-            <p class="text-sm text-surface-400">${lead.city} — ${LOAN_LABELS[lead.loan_type] || lead.loan_type}</p>
+            <p class="text-sm text-surface-400">${LOAN_LABELS[lead.loan_type] || lead.loan_type}</p>
           </div>
         </div>
         <button class="btn-ghost rounded-lg" onclick="closeModal('leadDetailModal')"><i class="fas fa-times"></i></button>
@@ -7777,20 +7544,19 @@ function handleCSVImport(e) {
     document.getElementById('importPreview').classList.remove('hidden');
     document.getElementById('importTable').innerHTML = `
       <table class="data-table">
-        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Address</th><th>City</th><th>Category</th><th>Status</th><th>Product Type</th><th>Amount</th><th>Source</th><th>Notes</th></tr></thead>
+        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Address</th><th>Category</th><th>Status</th><th>Product Type</th><th>Amount</th><th>Source</th><th>Notes</th></tr></thead>
         <tbody>${importData.slice(0, 10).map(r => `<tr>
           <td class="text-white">${r.name || '—'}</td>
           <td>${r.phone || '—'}</td>
           <td>${r.email || '—'}</td>
           <td>${r.address || '—'}</td>
-          <td>${r.city || '—'}</td>
           <td>${r.category || r.leadcategory || '—'}</td>
           <td>${r.status || '—'}</td>
           <td>${r.producttype || r.loantype || '—'}</td>
           <td>${r.amount ? formatCurrency(r.amount) : '—'}</td>
           <td>${r.source || '—'}</td>
           <td class="truncate max-w-xs">${r.notes || '—'}</td>
-        </tr>`).join('')}${importData.length > 10 ? `<tr><td colspan="11" class="text-center text-surface-500">...and ${importData.length - 10} more</td></tr>` : ''}</tbody>
+        </tr>`).join('')}${importData.length > 10 ? `<tr><td colspan="10" class="text-center text-surface-500">...and ${importData.length - 10} more</td></tr>` : ''}</tbody>
       </table>
     `;
   };
@@ -7982,17 +7748,17 @@ async function performImport(confirm) {
 
 // ========== EXPORT ==========
 function downloadCSVTemplate() {
-  const templateCSV = `Name,Phone,Email,Address,City,Category,Product Type,Amount,Source,Status,Notes
-Aarav Sharma,9876543210,aarav.sharma@email.com,"123, Marine Drive",mumbai,individual,home_loan,5000000,facebook,new,"Wants low interest rates"
-Priya Patel,9123456789,priya.patel@email.com,"Flat 402, Sunshine Apts",delhi,business,personal_loan,200000,website,new,"Looking for quick disbursal"
-Rohan Gupta,9988776655,rohan.gupta@email.com,"Plot 12, Indiranagar",bangalore,individual,car_loan,800000,referral,new,"Salaried customer"
-Sneha Singh,9876501234,sneha.singh@email.com,"5-9-20, Banjara Hills",hyderabad,business,business_loan,1500000,website,new,"Expanding retail store"
-Amit Verma,9112233445,amit.verma@email.com,"No 5, Anna Salai",chennai,individual,home_loan,3000000,google,new,"Documents ready"
-Megha Reddy,9001122334,megha.reddy@email.com,"A-12, Koregaon Park",pune,individual,personal_loan,500000,facebook,new,"Requires flexible tenure"
-Vikram Iyer,9887766554,vikram.iyer@email.com,"15/B, Salt Lake",kolkata,individual,education_loan,1000000,website,new,"Applying for daughter study"
-Anjali Das,9776655443,anjali.das@email.com,"C-45, Vastrapur",ahmedabad,business,car_loan,700000,google,new,"Self employed IT consultant"
-Rahul Kumar,9665544332,rahul.kumar@email.com,"12, Malviya Nagar",jaipur,individual,personal_loan,300000,referral,new,"Existing bank customer"
-Sonia Rao,9554433221,sonia.rao@email.com,"D-10, Gomti Nagar",lucknow,individual,home_loan,4000000,facebook,new,"Co-applicant is spouse"`;
+  const templateCSV = `Name,Phone,Email,Address,Category,Product Type,Amount,Source,Status,Notes
+Aarav Sharma,9876543210,aarav.sharma@email.com,"123, Marine Drive",individual,home_loan,5000000,facebook,new,"Wants low interest rates"
+Priya Patel,9123456789,priya.patel@email.com,"Flat 402, Sunshine Apts",business,personal_loan,200000,website,new,"Looking for quick disbursal"
+Rohan Gupta,9988776655,rohan.gupta@email.com,"Plot 12, Indiranagar",individual,car_loan,800000,referral,new,"Salaried customer"
+Sneha Singh,9876501234,sneha.singh@email.com,"5-9-20, Banjara Hills",business,business_loan,1500000,website,new,"Expanding retail store"
+Amit Verma,9112233445,amit.verma@email.com,"No 5, Anna Salai",individual,home_loan,3000000,google,new,"Documents ready"
+Megha Reddy,9001122334,megha.reddy@email.com,"A-12, Koregaon Park",individual,personal_loan,500000,facebook,new,"Requires flexible tenure"
+Vikram Iyer,9887766554,vikram.iyer@email.com,"15/B, Salt Lake",individual,education_loan,1000000,website,new,"Applying for daughter study"
+Anjali Das,9776655443,anjali.das@email.com,"C-45, Vastrapur",business,car_loan,700000,google,new,"Self employed IT consultant"
+Rahul Kumar,9665544332,rahul.kumar@email.com,"12, Malviya Nagar",individual,personal_loan,300000,referral,new,"Existing bank customer"
+Sonia Rao,9554433221,sonia.rao@email.com,"D-10, Gomti Nagar",individual,home_loan,4000000,facebook,new,"Co-applicant is spouse"`;
 
   const blob = new Blob([templateCSV], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -8038,13 +7804,12 @@ function exportFollowUpsCSV() {
 
 function exportLeadsCSV(selectedOnly = false) {
   const vl = selectedOnly ? leads.filter(l => selectedLeadIds.includes(l.id || l._id)) : getFilteredLeads();
-  let csv = 'Name,Phone,Email,Address,City,Category,Product Type,Amount,Source,Status,Agent,Aging,Assigned At,Created At\n';
+  let csv = 'Name,Phone,Email,Address,Category,Product Type,Amount,Source,Status,Agent,Aging,Assigned At,Created At\n';
   vl.forEach(l => {
     const escapedName = (l.name || '').replace(/"/g, '""');
     const escapedPhone = (l.phone || '').replace(/"/g, '""');
     const escapedEmail = (l.email || '').replace(/"/g, '""');
     const escapedAddress = (l.address || '').replace(/"/g, '""');
-    const escapedCity = (l.city || '').replace(/"/g, '""');
     const escapedCategory = (CATEGORY_LABELS[l.lead_category] || l.lead_category || 'Individual').replace(/"/g, '""');
     const escapedLoanType = (LOAN_LABELS[l.loan_type] || l.loan_type || '').replace(/"/g, '""');
     const escapedAmount = l.amount_requested || 0;
@@ -8055,7 +7820,7 @@ function exportLeadsCSV(selectedOnly = false) {
     const assignedAt = formatDate(l.assigned_at);
     const createdAt = formatDate(l.created_at);
     
-    csv += `"${escapedName}","${escapedPhone}","${escapedEmail}","${escapedAddress}","${escapedCity}","${escapedCategory}","${escapedLoanType}","${escapedAmount}","${escapedSource}","${escapedStatus}","${escapedAgentName}","${aging}","${assignedAt}","${createdAt}"\n`;
+    csv += `"${escapedName}","${escapedPhone}","${escapedEmail}","${escapedAddress}","${escapedCategory}","${escapedLoanType}","${escapedAmount}","${escapedSource}","${escapedStatus}","${escapedAgentName}","${aging}","${assignedAt}","${createdAt}"\n`;
   });
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
